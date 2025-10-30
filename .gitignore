@@ -1,0 +1,64 @@
+# Laravel
+/vendor
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.backup
+.env.production
+.env.local
+.env.*.local
+
+# Build & Cache
+/public/hot
+/public/build
+/public/storage
+/storage/*.key
+/storage/pail
+/.phpunit.cache
+.phpunit.result.cache
+
+# IDE & Editor files
+/.idea
+/.vscode
+/.fleet
+/.nova
+/.zed
+.phpactor.json
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel specific
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+
+# Authentication
+/auth.json
+
+# Deployment tools
+Homestead.json
+Homestead.yaml
+/.vagrant
+npm-debug.log
+
+# Testing
+*.log
+phpunit.xml
+
+# Claude documentation
+claude.md
