@@ -1,48 +1,146 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Books Retrieval API with Vector Search Tutorial
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A practical tutorial project demonstrating how to **replace traditional database queries with semantic vector search** in a realistic public library application scenario.
 
-## About Laravel
+## Project Purpose
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This repository accompanies an article about implementing vector search in Laravel applications. It showcases a real-world use case: building a book search API for a public library that goes beyond simple keyword matching to understand the semantic meaning of search queries.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**Key Learning Objectives:**
+- Integrate MongoDB Atlas Vector Search with Laravel
+- Implement semantic search using embeddings (Voyage AI)
+- Compare traditional full-text search vs. vector search
+- Build a production-ready book search API
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Tech Stack
 
-## Learning Laravel
+- **Framework**: Laravel 12
+- **Database**: MongoDB Atlas (cloud-hosted)
+- **Vector Embeddings**: Voyage AI (planned)
+- **Search Technologies**:
+  - MongoDB Atlas Vector Search (semantic search)
+  - MongoDB Atlas Search (full-text search)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Current Implementation Status
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Completed Features
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- MongoDB Atlas integration with Laravel
+- Book model with MongoDB Eloquent
+- API endpoint infrastructure
+- Full-text search implementation using Lucene
+- Vector search index creation
+- Basic vector search endpoint (awaiting embeddings)
 
-## Laravel Sponsors
+### API Endpoints
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Endpoint | Method | Status | Description |
+|----------|--------|--------|-------------|
+| `/api/hello` | GET | ✅ | Test endpoint |
+| `/api/getbook_isbn/{isbn}` | GET | ✅ | Retrieve book by ISBN |
+| `/api/create-vector-index` | GET/POST | ✅ | Create vector search index (1408 dimensions) |
+| `/api/create-fulltext-search-index` | GET/POST | ✅ | Create Lucene full-text search index |
+| `/api/get-books-fulltext/{search}` | GET | ✅ | Search books by title/synopsis (keyword) |
+| `/api/book-search-vector` | POST | ⚠️ | Semantic search (needs embedding generation) |
 
-### Premium Partners
+## What's Next
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### High Priority
+
+1. **Voyage AI Integration**
+   - Configure Voyage AI API credentials
+   - Implement query-to-embedding conversion service
+   - Batch re-generate embeddings for all existing books in MongoDB
+   - Update vector index if dimensions differ from current 1408
+
+2. **Complete Vector Search**
+   - Integrate embedding generation into `/api/book-search-vector`
+   - Test semantic search with real queries
+   - Compare results with full-text search
+
+### Future Enhancements
+
+- Add pagination for search results
+- Implement hybrid search (combining full-text + vector search)
+- Add filtering by genre, year, publisher
+- Create CRUD endpoints for book management
+- Add rate limiting and authentication
+- Performance optimization and caching
+
+## Getting Started
+
+### Prerequisites
+
+- PHP 8.2+
+- Composer
+- MongoDB PHP extension (`pecl install mongodb`)
+- MongoDB Atlas account
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd laravel-books-retrieval-api-tutorial
+```
+
+2. Install dependencies
+```bash
+composer install
+```
+
+3. Configure environment
+```bash
+cp .env.example .env
+```
+
+4. Add MongoDB Atlas credentials to `.env`
+```env
+DB_CONNECTION=mongodb
+DB_DSN=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+DB_DATABASE=laravel_books
+```
+
+5. Start development server
+```bash
+php artisan serve
+```
+
+6. Test the API
+```bash
+curl http://localhost:8000/api/hello
+```
+
+## Project Structure
+
+- [routes/api.php](routes/api.php) - API endpoint definitions
+- [app/Models/Book.php](app/Models/Book.php) - MongoDB Book model
+- [config/database.php](config/database.php) - MongoDB configuration
+- `CLAUDE.md` - Detailed development notes (not in repo)
+
+## MongoDB Schema
+
+Books collection structure:
+- `_id`: ISBN (primary key)
+- `title`: Book title
+- `authors`: Array of author objects
+- `genres`: Array of genre strings
+- `synopsis`: Book description
+- `embeddings`: Vector embeddings (1408 dimensions)
+- Additional fields: pages, year, cover, publisher, reviews, etc.
+
+## About the Tutorial Article
+
+This project demonstrates the transition from traditional database queries to semantic search in a practical library application context. By following along, you'll learn:
+
+- When vector search makes sense vs. traditional search
+- How to implement production-ready vector search with Laravel
+- Best practices for MongoDB Atlas integration
+- Real-world embedding generation workflows
+
+## Laravel Framework
+
+Built on Laravel 12 - a web application framework with expressive, elegant syntax. Learn more at [laravel.com](https://laravel.com)
 
 ## Contributing
 
