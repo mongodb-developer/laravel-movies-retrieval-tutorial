@@ -34,7 +34,7 @@ return [
         'mongodb' => [
             'driver' => 'mongodb',
             'dsn' => env('DB_DSN'),
-            'database' => env('DB_DATABASE', 'library'),
+            'database' => env('DB_DATABASE', 'sample_mflix'),
         ],
 
         'sqlite' => [

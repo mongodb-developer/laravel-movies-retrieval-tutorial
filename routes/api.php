@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Models\Book;
+use App\Models\Movie;
 
 Route::get('/hello', function () {
     return response()->json([
@@ -9,23 +10,37 @@ Route::get('/hello', function () {
     ]);
 });
 
-Route::get('/getbook_isbn/{isbn}', function ($isbn) {
-    $book = Book::find($isbn);
+Route::get('/get-movie-by-title/{title}', function ($title) {
+    try {
+        // Decode URL parameter
+        $movieTitle = urldecode($title);
 
-    if (!$book) {
+        // Find movie by exact title match
+        $movie = Movie::where('title', $movieTitle)->first();
+
+        if (!$movie) {
+            return response()->json([
+                'error' => 'No movie found',
+                'title' => $movieTitle
+            ], 404);
+        }
+
+        return response()->json($movie);
+
+    } catch (\Exception $e) {
         return response()->json([
-            'error' => 'Book not found',
-            'isbn' => $isbn
-        ], 404);
+            'error' => 'Failed to retrieve movie',
+            'message' => $e->getMessage()
+        ], 500);
     }
-
-    return response()->json($book);
 });
+
+
 
 $createVectorIndexHandler = function () {
     try {
         $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'library');
+        $database = env('DB_DATABASE', 'movies');
 
         $client = new MongoDB\Client($dsn);
         $db = $client->selectDatabase($database);
@@ -33,7 +48,7 @@ $createVectorIndexHandler = function () {
         // Check if vector index already exists
         $indexes = $db->books->listSearchIndexes();
         foreach ($indexes as $index) {
-            if (isset($index['name']) && $index['name'] === 'books_vector_index') {
+            if (isset($index['name']) && $index['name'] === 'movies_vector_index') {
                 return response()->json([
                     'response' => 'vector index already exists'
                 ]);
@@ -45,7 +60,7 @@ $createVectorIndexHandler = function () {
             'createSearchIndexes' => 'books',
             'indexes' => [
                 [
-                    'name' => 'books_vector_index',
+                    'name' => 'movies_vector_index',
                     'type' => 'vectorSearch',
                     'definition' => [
                         'fields' => [
