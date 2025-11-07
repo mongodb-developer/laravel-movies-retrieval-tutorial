@@ -76,60 +76,6 @@ class VoyageAIService
     }
 
     /**
-     * Generate embedding for a single text input
-     *
-     * @param string $text
-     * @return array{success: bool, embedding?: array, dimensions?: int, usage?: array, error?: string}
-     */
-    public function generateEmbedding(string $text): array
-    {
-        if (!$this->isConfigured()) {
-            return [
-                'success' => false,
-                'error' => 'VOYAGE_AI_API_KEY is not configured'
-            ];
-        }
-
-        if (empty($text)) {
-            return [
-                'success' => false,
-                'error' => 'Text input is required'
-            ];
-        }
-
-        try {
-            $response = $this->makeRequest([$text]);
-
-            if ($response['success']) {
-                $embedding = $response['data']['data'][0]['embedding'] ?? null;
-
-                if (!$embedding) {
-                    return [
-                        'success' => false,
-                        'error' => 'No embedding returned from API'
-                    ];
-                }
-
-                return [
-                    'success' => true,
-                    'embedding' => $embedding,
-                    'dimensions' => count($embedding),
-                    'usage' => $response['data']['usage'] ?? null
-                ];
-            }
-
-            return $response;
-
-        } catch (\Exception $e) {
-            Log::error('VoyageAI embedding generation failed: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
      * Generate embeddings for multiple text inputs (batch processing)
      *
      * @param array<string> $texts

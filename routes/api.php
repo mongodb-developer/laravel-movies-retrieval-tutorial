@@ -56,13 +56,14 @@ Route::get('/embedding-model-vectorize/{input}', function ($input) {
     // Decode URL parameter
     $inputText = urldecode($input);
 
-    $result = $voyageAI->generateEmbedding($inputText);
+    $result = $voyageAI->generateEmbeddings([$inputText]);
 
     if ($result['success']) {
+        $embedding = $result['embeddings'][0]['embedding'];
         return response()->json([
             'input' => $inputText,
-            'embedding' => $result['embedding'],
-            'embedding_dimensions' => $result['dimensions'],
+            'embedding' => $embedding,
+            'embedding_dimensions' => count($embedding),
             'model' => $voyageAI->getModel(),
             'usage' => $result['usage']
         ]);
@@ -104,35 +105,45 @@ Route::get('/get-movie-by-title/{title}', function ($title) {
 $createVectorIndexHandler = function () {
     try {
         $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'movies');
+        $database = env('DB_DATABASE', 'sample_mflix');
+        $collection = 'movies';
+        $indexName = 'movies_vector_index';
+
+        // Get vector configuration from environment
+        $vectorDimensions = (int) env('VECTOR_DIMENSIONS', 512);
+        $vectorSimilarity = env('VECTOR_SIMILARITY', 'cosine');
 
         $client = new MongoDB\Client($dsn);
         $db = $client->selectDatabase($database);
 
         // Check if vector index already exists
-        $indexes = $db->books->listSearchIndexes();
+        $indexes = $db->$collection->listSearchIndexes();
         foreach ($indexes as $index) {
-            if (isset($index['name']) && $index['name'] === 'movies_vector_index') {
+            if (isset($index['name']) && $index['name'] === $indexName) {
                 return response()->json([
-                    'response' => 'vector index already exists'
+                    'response' => 'vector index already exists',
+                    'index_name' => $indexName,
+                    'collection' => $collection,
+                    'dimensions' => $vectorDimensions,
+                    'similarity' => $vectorSimilarity
                 ]);
             }
         }
 
         // Create vector search index
         $result = $db->command([
-            'createSearchIndexes' => 'books',
+            'createSearchIndexes' => $collection,
             'indexes' => [
                 [
-                    'name' => 'movies_vector_index',
+                    'name' => $indexName,
                     'type' => 'vectorSearch',
                     'definition' => [
                         'fields' => [
                             [
                                 'type' => 'vector',
                                 'path' => 'embeddings',
-                                'numDimensions' => 1408,
-                                'similarity' => 'cosine'
+                                'numDimensions' => $vectorDimensions,
+                                'similarity' => $vectorSimilarity
                             ]
                         ]
                     ]
@@ -142,6 +153,10 @@ $createVectorIndexHandler = function () {
 
         return response()->json([
             'response' => 'vector search index created successfully',
+            'index_name' => $indexName,
+            'collection' => $collection,
+            'dimensions' => $vectorDimensions,
+            'similarity' => $vectorSimilarity,
             'result' => $result
         ]);
 
@@ -156,123 +171,8 @@ $createVectorIndexHandler = function () {
 Route::get('/create-vector-index', $createVectorIndexHandler);
 Route::post('/create-vector-index', $createVectorIndexHandler);
 
-$createFullTextIndexHandler = function () {
-    try {
-        $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'library');
 
-        $client = new MongoDB\Client($dsn);
-        $db = $client->selectDatabase($database);
-
-        // Check if full-text search index already exists
-        $indexes = $db->books->listSearchIndexes();
-        foreach ($indexes as $index) {
-            if (isset($index['name']) && $index['name'] === 'books_fulltext_index') {
-                return response()->json([
-                    'response' => 'full-text search index already exists'
-                ]);
-            }
-        }
-
-        // Create full-text search index using Atlas Search (Lucene)
-        $result = $db->command([
-            'createSearchIndexes' => 'books',
-            'indexes' => [
-                [
-                    'name' => 'books_fulltext_index',
-                    'definition' => [
-                        'mappings' => [
-                            'dynamic' => false,
-                            'fields' => [
-                                'title' => [
-                                    'type' => 'string',
-                                    'analyzer' => 'lucene.standard'
-                                ],
-                                'synopsis' => [
-                                    'type' => 'string',
-                                    'analyzer' => 'lucene.standard'
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ]);
-
-        return response()->json([
-            'response' => 'full-text search index created successfully',
-            'result' => $result
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Failed to create full-text search index',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-};
-
-Route::get('/create-fulltext-search-index', $createFullTextIndexHandler);
-Route::post('/create-fulltext-search-index', $createFullTextIndexHandler);
-
-Route::get('/get-books-fulltext/{search}', function ($search) {
-    try {
-        if (!$search) {
-            return response()->json([
-                'error' => 'Search parameter is required'
-            ], 400);
-        }
-
-        $searchPhrase = urldecode($search);
-
-        $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'library');
-
-        $client = new MongoDB\Client($dsn);
-        $db = $client->selectDatabase($database);
-        $collection = $db->books;
-
-        // Perform full-text search using MongoDB Atlas Search (Lucene)
-        $pipeline = [
-            [
-                '$search' => [
-                    'index' => 'books_fulltext_index',
-                    'text' => [
-                        'query' => $searchPhrase,
-                        'path' => ['title', 'synopsis']
-                    ]
-                ]
-            ],
-            [
-                '$project' => [
-                    '_id' => 1,
-                    'title' => 1,
-                    'synopsis' => 1,
-                    'score' => ['$meta' => 'searchScore']
-                ]
-            ],
-            [
-                '$limit' => 10
-            ]
-        ];
-
-        $results = $collection->aggregate($pipeline)->toArray();
-
-        return response()->json([
-            'search' => $searchPhrase,
-            'results' => $results,
-            'count' => count($results)
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Full-text search failed',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-});
-
-Route::post('/book-search-vector', function (Illuminate\Http\Request $request) {
+Route::post('/movie-search-vector', function (Illuminate\Http\Request $request) {
     try {
         $query = $request->input('query');
 
@@ -282,29 +182,40 @@ Route::post('/book-search-vector', function (Illuminate\Http\Request $request) {
             ], 400);
         }
 
-        // TODO: Convert query string to embedding vector
-        // You need to call an embedding API here (e.g., OpenAI, Cohere, etc.)
-        // For now, this is a placeholder
-        $queryVector = []; // This should be a 1408-dimensional array
+        // Generate embedding for the query using VoyageAI
+        $voyageAI = new VoyageAIService();
 
-        if (empty($queryVector)) {
+        if (!$voyageAI->isConfigured()) {
             return response()->json([
-                'error' => 'Query embedding generation not implemented. Please provide embedding service configuration.'
-            ], 501);
+                'error' => 'VOYAGE_AI_API_KEY is not set in .env file'
+            ], 400);
         }
 
+        $result = $voyageAI->generateEmbeddings([$query]);
+
+        if (!$result['success']) {
+            return response()->json([
+                'error' => 'Failed to generate query embedding',
+                'message' => $result['error']
+            ], 500);
+        }
+
+        $queryVector = $result['embeddings'][0]['embedding'];
+
+        // Get configuration
         $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'library');
+        $database = env('DB_DATABASE', 'sample_mflix');
+        $collection = 'movies';
+        $indexName = 'movies_vector_index';
 
         $client = new MongoDB\Client($dsn);
         $db = $client->selectDatabase($database);
-        $collection = $db->books;
 
         // Perform vector search using MongoDB aggregation pipeline
         $pipeline = [
             [
                 '$vectorSearch' => [
-                    'index' => 'books_vector_index',
+                    'index' => $indexName,
                     'path' => 'embeddings',
                     'queryVector' => $queryVector,
                     'numCandidates' => 100,
@@ -315,22 +226,26 @@ Route::post('/book-search-vector', function (Illuminate\Http\Request $request) {
                 '$project' => [
                     '_id' => 1,
                     'title' => 1,
-                    'authors' => 1,
-                    'synopsis' => 1,
-                    'cover' => 1,
-                    'publisher' => 1,
+                    'plot' => 1,
+                    'fullplot' => 1,
+                    'genres' => 1,
                     'year' => 1,
+                    'cast' => 1,
+                    'directors' => 1,
+                    'poster' => 1,
                     'score' => ['$meta' => 'vectorSearchScore']
                 ]
             ]
         ];
 
-        $results = $collection->aggregate($pipeline)->toArray();
+        $results = $db->$collection->aggregate($pipeline)->toArray();
 
         return response()->json([
             'query' => $query,
             'results' => $results,
-            'count' => count($results)
+            'count' => count($results),
+            'embedding_model' => $voyageAI->getModel(),
+            'vector_dimensions' => count($queryVector)
         ]);
 
     } catch (\Exception $e) {
