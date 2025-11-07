@@ -14,7 +14,7 @@ class GenerateEmbeddings extends Command
      *
      * @var string
      */
-    protected $signature = 'embeddings:generate {--force : Force regeneration of existing embeddings}';
+    protected $signature = 'embeddings:generate {--force : Force regeneration of existing embeddings} {--limit= : Limit the number of movies to process}';
 
     /**
      * The console command description.
@@ -58,6 +58,24 @@ class GenerateEmbeddings extends Command
                 $q->whereNull('embeddings')
                   ->orWhere('embeddings', []);
             });
+        }
+
+        // Apply limit if specified
+        $limit = $this->option('limit');
+        if ($limit && is_numeric($limit)) {
+            $query->limit((int) $limit);
+            $this->info("Limiting to {$limit} movies");
+        }
+
+        // SAFETY: Hard limit to prevent accidentally processing too many movies
+        // This protects against high API costs from the embedding service.
+        // Comment out the lines below if you intentionally want to process more than 100 movies.
+        $HARD_LIMIT = 100;
+        $currentLimit = $query->toBase()->limit ?? PHP_INT_MAX;
+        if ($currentLimit > $HARD_LIMIT) {
+            $query->limit($HARD_LIMIT);
+            $this->warn("Safety limit applied: Processing maximum of {$HARD_LIMIT} movies.");
+            $this->warn("To process more, comment out the HARD_LIMIT in " . __FILE__);
         }
 
         $totalMovies = $query->count();
