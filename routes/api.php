@@ -100,78 +100,6 @@ Route::get('/get-movie-by-title/{title}', function ($title) {
     }
 });
 
-
-
-$createVectorIndexHandler = function () {
-    try {
-        $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'sample_mflix');
-        $collection = 'movies';
-        $indexName = 'movies_vector_index';
-
-        // Get vector configuration from environment
-        $vectorDimensions = (int) env('VECTOR_DIMENSIONS', 512);
-        $vectorSimilarity = env('VECTOR_SIMILARITY', 'cosine');
-
-        $client = new MongoDB\Client($dsn);
-        $db = $client->selectDatabase($database);
-
-        // Check if vector index already exists
-        $indexes = $db->$collection->listSearchIndexes();
-        foreach ($indexes as $index) {
-            if (isset($index['name']) && $index['name'] === $indexName) {
-                return response()->json([
-                    'response' => 'vector index already exists',
-                    'index_name' => $indexName,
-                    'collection' => $collection,
-                    'dimensions' => $vectorDimensions,
-                    'similarity' => $vectorSimilarity
-                ]);
-            }
-        }
-
-        // Create vector search index
-        $result = $db->command([
-            'createSearchIndexes' => $collection,
-            'indexes' => [
-                [
-                    'name' => $indexName,
-                    'type' => 'vectorSearch',
-                    'definition' => [
-                        'fields' => [
-                            [
-                                'type' => 'vector',
-                                'path' => 'embeddings',
-                                'numDimensions' => $vectorDimensions,
-                                'similarity' => $vectorSimilarity
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ]);
-
-        return response()->json([
-            'response' => 'vector search index created successfully',
-            'index_name' => $indexName,
-            'collection' => $collection,
-            'dimensions' => $vectorDimensions,
-            'similarity' => $vectorSimilarity,
-            'result' => $result
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Failed to create vector search index',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-};
-
-Route::get('/create-vector-index', $createVectorIndexHandler);
-Route::post('/create-vector-index', $createVectorIndexHandler);
-
-
 Route::post('/movie-search-vector', function (Illuminate\Http\Request $request) {
     try {
         $query = $request->input('query');
@@ -202,48 +130,35 @@ Route::post('/movie-search-vector', function (Illuminate\Http\Request $request) 
 
         $queryVector = $result['embeddings'][0]['embedding'];
 
-        // Get configuration
-        $dsn = env('DB_DSN');
-        $database = env('DB_DATABASE', 'sample_mflix');
-        $collection = 'movies';
-        $indexName = 'movies_vector_index';
+        // Perform vector search using Eloquent method
+        $results = Movie::vectorSearch(
+            index: 'movies_vector_index',
+            path: 'embeddings',
+            queryVector: $queryVector,
+            limit: 10,
+            numCandidates: 100
+        );
 
-        $client = new MongoDB\Client($dsn);
-        $db = $client->selectDatabase($database);
-
-        // Perform vector search using MongoDB aggregation pipeline
-        $pipeline = [
-            [
-                '$vectorSearch' => [
-                    'index' => $indexName,
-                    'path' => 'embeddings',
-                    'queryVector' => $queryVector,
-                    'numCandidates' => 100,
-                    'limit' => 10
-                ]
-            ],
-            [
-                '$project' => [
-                    '_id' => 1,
-                    'title' => 1,
-                    'plot' => 1,
-                    'fullplot' => 1,
-                    'genres' => 1,
-                    'year' => 1,
-                    'cast' => 1,
-                    'directors' => 1,
-                    'poster' => 1,
-                    'score' => ['$meta' => 'vectorSearchScore']
-                ]
-            ]
-        ];
-
-        $results = $db->$collection->aggregate($pipeline)->toArray();
+        // Format results with score and selected fields
+        $formattedResults = $results->map(function ($movie) {
+            return [
+                '_id' => $movie->_id,
+                'title' => $movie->title,
+                'plot' => $movie->plot,
+                'fullplot' => $movie->fullplot,
+                'genres' => $movie->genres,
+                'year' => $movie->year,
+                'cast' => $movie->cast,
+                'directors' => $movie->directors,
+                'poster' => $movie->poster,
+                'score' => $movie->vectorSearchScore
+            ];
+        });
 
         return response()->json([
             'query' => $query,
-            'results' => $results,
-            'count' => count($results),
+            'results' => $formattedResults,
+            'count' => $formattedResults->count(),
             'embedding_model' => $voyageAI->getModel(),
             'vector_dimensions' => count($queryVector)
         ]);

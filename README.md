@@ -50,12 +50,6 @@ This repository accompanies an article about implementing vector search in Larav
 | `/api/embedding-model-info` | GET | ✅ | Test Voyage AI connection and get model info |
 | `/api/embedding-model-vectorize/{input}` | GET | ✅ | Generate embedding for a single text input |
 
-### Search Index Management
-
-| Endpoint | Method | Status | Description |
-|----------|--------|--------|-------------|
-| `/api/create-vector-index` | GET/POST | ✅ | Create vector search index (512 dimensions, cosine similarity) |
-
 ### Search Endpoints
 
 | Endpoint | Method | Status | Description |
@@ -132,6 +126,28 @@ php artisan embeddings:delete --force
 - **Operation**: Uses MongoDB `$unset` operation to remove embeddings field
 - **Verification**: Checks remaining embeddings after deletion
 
+### Create Vector Index
+
+Create MongoDB Atlas Vector Search index for the movies collection:
+
+```bash
+# Create vector index (checks if already exists)
+php artisan vector:create-index
+
+# Force recreate index (deletes existing index first)
+php artisan vector:create-index --force
+```
+
+**Command Details:**
+- **Location**: [app/Console/Commands/CreateVectorIndex.php](app/Console/Commands/CreateVectorIndex.php)
+- **Index Configuration**: Uses environment variables for dimensions (512) and similarity (cosine)
+- **Smart Detection**: Checks for existing index before creating
+- **Force Mode**: With `--force` flag, deletes existing index and creates new one
+- **Wait Logic**: Waits up to 30 seconds for index deletion to propagate in MongoDB Atlas
+
+**Flags:**
+- `--force`: Delete existing index and create a new one
+
 ## 3 Steps to Vector Search
 
 Vector search enables semantic understanding of queries, finding relevant results based on meaning rather than exact keyword matches. Here's how it works in this project:
@@ -185,45 +201,49 @@ php artisan embeddings:generate --limit=100
 
 **What**: Create a MongoDB Atlas Vector Search index that enables efficient similarity searches.
 
-**How**: Configure an index with the correct dimensions (512) and similarity function (cosine).
+**How**: Use the CLI command to configure an index with the correct dimensions (512) and similarity function (cosine).
 
-**Code Location**: [routes/api.php:104-171](routes/api.php#L104-L171)
+**Code Location**: [app/Console/Commands/CreateVectorIndex.php](app/Console/Commands/CreateVectorIndex.php)
 
 **Key Implementation Details:**
 
-1. **Index Configuration** ([routes/api.php:111-114](routes/api.php#L111-L114)):
+1. **Index Configuration** ([CreateVectorIndex.php:42-46](app/Console/Commands/CreateVectorIndex.php#L42-L46)):
    ```php
    // Get vector configuration from environment
    $vectorDimensions = (int) env('VECTOR_DIMENSIONS', 512);
    $vectorSimilarity = env('VECTOR_SIMILARITY', 'cosine');
    ```
 
-2. **Index Creation** ([routes/api.php:133-151](routes/api.php#L133-L151)):
+2. **Collection Access** ([CreateVectorIndex.php:48-50](app/Console/Commands/CreateVectorIndex.php#L48-L50)):
    ```php
-   $result = $db->command([
-       'createSearchIndexes' => $collection,
-       'indexes' => [
-           [
-               'name' => $indexName,
-               'type' => 'vectorSearch',
-               'definition' => [
-                   'fields' => [
-                       [
-                           'type' => 'vector',
-                           'path' => 'embeddings',
-                           'numDimensions' => $vectorDimensions,
-                           'similarity' => $vectorSimilarity
-                       ]
-                   ]
-               ]
-           ]
-       ]
-   ]);
+   // Get the MongoDB collection instance via Laravel DB facade
+   $connection = DB::connection('mongodb');
+   $collection = $connection->getCollection('movies');
    ```
 
-**Run the endpoint:**
+3. **Index Creation** ([CreateVectorIndex.php:62-79](app/Console/Commands/CreateVectorIndex.php#L62-L79)):
+   ```php
+   $result = $collection->createSearchIndex(
+       [
+           'fields' => [
+               [
+                   'type' => 'vector',
+                   'path' => 'embeddings',
+                   'numDimensions' => $vectorDimensions,
+                   'similarity' => $vectorSimilarity
+               ]
+           ]
+       ],
+       [
+           'name' => $indexName,
+           'type' => 'vectorSearch'
+       ]
+   );
+   ```
+
+**Run the command:**
 ```bash
-curl http://localhost:8000/api/create-vector-index
+php artisan vector:create-index
 ```
 
 **Environment Variables** (`.env`):
@@ -236,13 +256,13 @@ VECTOR_SIMILARITY=cosine
 
 **What**: Convert search queries into vectors and find similar movies using semantic similarity.
 
-**How**: Use Voyage AI to vectorize the query, then perform MongoDB `$vectorSearch` aggregation.
+**How**: Use Voyage AI to vectorize the query, then perform MongoDB vector search using Laravel Eloquent.
 
-**Code Location**: [routes/api.php:110-192](routes/api.php#L110-L192)
+**Code Location**: [routes/api.php:103-172](routes/api.php#L103-L172)
 
 **Key Implementation Details:**
 
-1. **Query Vectorization** ([routes/api.php:120-138](routes/api.php#L120-L138)):
+1. **Query Vectorization** ([routes/api.php:114-131](routes/api.php#L114-L131)):
    ```php
    // Generate embedding for the query using VoyageAI
    $voyageAI = new VoyageAIService();
@@ -250,35 +270,35 @@ VECTOR_SIMILARITY=cosine
    $queryVector = $result['embeddings'][0]['embedding'];
    ```
 
-2. **Vector Search Pipeline** ([routes/api.php:150-174](routes/api.php#L150-L174)):
+2. **Vector Search Using Eloquent** ([routes/api.php:133-140](routes/api.php#L133-L140)):
    ```php
-   $pipeline = [
-       [
-           '$vectorSearch' => [
-               'index' => $indexName,
-               'path' => 'embeddings',
-               'queryVector' => $queryVector,
-               'numCandidates' => 100,
-               'limit' => 10
-           ]
-       ],
-       [
-           '$project' => [
-               '_id' => 1,
-               'title' => 1,
-               'plot' => 1,
-               'fullplot' => 1,
-               'genres' => 1,
-               'year' => 1,
-               'cast' => 1,
-               'directors' => 1,
-               'poster' => 1,
-               'score' => ['$meta' => 'vectorSearchScore']
-           ]
-       ]
-   ];
+   // Perform vector search using Eloquent method
+   $results = Movie::vectorSearch(
+       index: 'movies_vector_index',
+       path: 'embeddings',
+       queryVector: $queryVector,
+       limit: 10,
+       numCandidates: 100
+   );
+   ```
 
-   $results = $db->$collection->aggregate($pipeline)->toArray();
+3. **Result Formatting** ([routes/api.php:143-156](routes/api.php#L143-L156)):
+   ```php
+   // Format results with score and selected fields
+   $formattedResults = $results->map(function ($movie) {
+       return [
+           '_id' => $movie->_id,
+           'title' => $movie->title,
+           'plot' => $movie->plot,
+           'fullplot' => $movie->fullplot,
+           'genres' => $movie->genres,
+           'year' => $movie->year,
+           'cast' => $movie->cast,
+           'directors' => $movie->directors,
+           'poster' => $movie->poster,
+           'score' => $movie->vectorSearchScore
+       ];
+   });
    ```
 
 **Run a search:**
@@ -363,7 +383,7 @@ php artisan embeddings:generate --limit=100
 
 8. Create vector search index
 ```bash
-curl http://localhost:8000/api/create-vector-index
+php artisan vector:create-index
 ```
 
 9. Try a semantic search
@@ -380,6 +400,7 @@ curl -X POST http://localhost:8000/api/movie-search-vector \
 - [app/Services/VoyageAIService.php](app/Services/VoyageAIService.php) - Voyage AI API integration
 - [app/Console/Commands/GenerateEmbeddings.php](app/Console/Commands/GenerateEmbeddings.php) - CLI for generating embeddings
 - [app/Console/Commands/DeleteEmbeddings.php](app/Console/Commands/DeleteEmbeddings.php) - CLI for deleting embeddings
+- [app/Console/Commands/CreateVectorIndex.php](app/Console/Commands/CreateVectorIndex.php) - CLI for creating vector search index
 - [config/database.php](config/database.php) - MongoDB configuration
 - `CLAUDE.md` - Detailed development notes (not in repo)
 
