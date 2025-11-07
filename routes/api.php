@@ -3,11 +3,75 @@
 use Illuminate\Support\Facades\Route;
 use App\Models\Book;
 use App\Models\Movie;
+use App\Services\VoyageAIService;
 
 Route::get('/hello', function () {
     return response()->json([
         'response' => 'hello world'
     ]);
+});
+
+Route::get('/embedding-model-info', function () {
+    $voyageAI = new VoyageAIService();
+
+    if (!$voyageAI->isConfigured()) {
+        return response()->json([
+            'error' => 'VOYAGE_AI_API_KEY is not set in .env file',
+            'configured' => false
+        ], 400);
+    }
+
+    $result = $voyageAI->testConnection();
+
+    if ($result['success']) {
+        return response()->json([
+            'status' => 'connected',
+            'model' => $voyageAI->getModel(),
+            'embedding_dimensions' => $result['data']['embedding_dimensions'],
+            'api_response' => [
+                'model' => $result['data']['model'],
+                'usage' => $result['data']['usage'],
+            ],
+            'configured' => true
+        ]);
+    }
+
+    return response()->json([
+        'error' => 'Failed to connect to Voyage AI',
+        'message' => $result['error'],
+        'configured' => true
+    ], $result['status_code'] ?? 500);
+});
+
+Route::get('/embedding-model-vectorize/{input}', function ($input) {
+    $voyageAI = new VoyageAIService();
+
+    if (!$voyageAI->isConfigured()) {
+        return response()->json([
+            'error' => 'VOYAGE_AI_API_KEY is not set in .env file',
+            'configured' => false
+        ], 400);
+    }
+
+    // Decode URL parameter
+    $inputText = urldecode($input);
+
+    $result = $voyageAI->generateEmbedding($inputText);
+
+    if ($result['success']) {
+        return response()->json([
+            'input' => $inputText,
+            'embedding' => $result['embedding'],
+            'embedding_dimensions' => $result['dimensions'],
+            'model' => $voyageAI->getModel(),
+            'usage' => $result['usage']
+        ]);
+    }
+
+    return response()->json([
+        'error' => 'Failed to generate embedding',
+        'message' => $result['error']
+    ], $result['status_code'] ?? 500);
 });
 
 Route::get('/get-movie-by-title/{title}', function ($title) {
