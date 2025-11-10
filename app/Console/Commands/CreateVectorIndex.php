@@ -26,12 +26,12 @@ class CreateVectorIndex extends Command
      */
     public function handle()
     {
-        $indexName = 'movies_vector_index';
-        $collectionName = 'movies';
+        $indexName = config('vector.index.name');
+        $collectionName = config('vector.collection');
 
-        // Get vector configuration from environment
-        $vectorDimensions = (int) env('VECTOR_DIMENSIONS', 512);
-        $vectorSimilarity = env('VECTOR_SIMILARITY', 'cosine');
+        // Get vector configuration
+        $vectorDimensions = config('vector.index.dimensions');
+        $vectorSimilarity = config('vector.index.similarity');
 
         $this->info('Creating vector search index for movies collection...');
         $this->newLine();
@@ -52,8 +52,8 @@ class CreateVectorIndex extends Command
                     $this->info('Waiting for deletion to complete...');
 
                     // Wait for deletion to propagate (MongoDB Atlas can take time)
-                    $maxWaitTime = 30; // seconds
-                    $waitInterval = 2; // seconds
+                    $maxWaitTime = config('vector.index.delete_wait_time');
+                    $waitInterval = config('vector.index.delete_wait_interval');
                     $elapsed = 0;
 
                     while ($elapsed < $maxWaitTime) {
@@ -87,7 +87,7 @@ class CreateVectorIndex extends Command
                     'fields' => [
                         [
                             'type' => 'vector',
-                            'path' => 'embeddings',
+                            'path' => config('vector.field_path'),
                             'numDimensions' => $vectorDimensions,
                             'similarity' => $vectorSimilarity
                         ]
@@ -109,7 +109,7 @@ class CreateVectorIndex extends Command
                 [
                     ['Index Name', $indexName],
                     ['Collection', $collectionName],
-                    ['Vector Field', 'embeddings'],
+                    ['Vector Field', config('vector.field_path')],
                     ['Dimensions', $vectorDimensions],
                     ['Similarity Function', $vectorSimilarity],
                 ]

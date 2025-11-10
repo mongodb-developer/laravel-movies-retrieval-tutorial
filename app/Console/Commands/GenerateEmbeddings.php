@@ -23,10 +23,7 @@ class GenerateEmbeddings extends Command
      */
     protected $description = 'Generate vector embeddings for movies using Voyage AI';
 
-    /**
-     * Batch processing configuration
-     */
-    private const BATCH_SIZE = 10;
+    // Batch size is now configured in config/vector.php
 
     /**
      * Voyage AI Service
@@ -69,13 +66,13 @@ class GenerateEmbeddings extends Command
 
         // SAFETY: Hard limit to prevent accidentally processing too many movies
         // This protects against high API costs from the embedding service.
-        // Comment out the lines below if you intentionally want to process more than 100 movies.
-        $HARD_LIMIT = 100;
+        // To change this limit, update EMBEDDING_SAFETY_LIMIT in .env or config/vector.php
+        $safetyLimit = config('vector.embeddings.safety_limit');
         $currentLimit = $query->toBase()->limit ?? PHP_INT_MAX;
-        if ($currentLimit > $HARD_LIMIT) {
-            $query->limit($HARD_LIMIT);
-            $this->warn("Safety limit applied: Processing maximum of {$HARD_LIMIT} movies.");
-            $this->warn("To process more, comment out the HARD_LIMIT in " . __FILE__);
+        if ($currentLimit > $safetyLimit) {
+            $query->limit($safetyLimit);
+            $this->warn("Safety limit applied: Processing maximum of {$safetyLimit} movies.");
+            $this->warn("To process more, update EMBEDDING_SAFETY_LIMIT in .env");
         }
 
         $totalMovies = $query->count();
@@ -99,7 +96,8 @@ class GenerateEmbeddings extends Command
         $skippedCount = 0;
 
         // Process movies in chunks
-        $query->chunk(self::BATCH_SIZE, function ($movies) use (&$processedCount, &$errorCount, &$skippedCount, $progressBar) {
+        $batchSize = config('vector.embeddings.batch_size');
+        $query->chunk($batchSize, function ($movies) use (&$processedCount, &$errorCount, &$skippedCount, $progressBar) {
             try {
                 // Prepare texts for embedding
                 $texts = [];
@@ -139,7 +137,8 @@ class GenerateEmbeddings extends Command
                 }
 
                 // Small delay to respect rate limits
-                usleep(100000); // 0.1 second delay between batches
+                $delayMs = config('vector.embeddings.batch_delay_ms');
+                usleep($delayMs * 1000); // Convert milliseconds to microseconds
 
             } catch (\Exception $e) {
                 $errorCount += count($movies);

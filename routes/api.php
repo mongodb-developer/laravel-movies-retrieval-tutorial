@@ -132,11 +132,11 @@ Route::post('/movie-search-vector', function (Illuminate\Http\Request $request) 
 
         // Perform vector search using Eloquent method
         $results = Movie::vectorSearch(
-            index: 'movies_vector_index',
-            path: 'embeddings',
+            index: config('vector.index.name'),
+            path: config('vector.field_path'),
             queryVector: $queryVector,
-            limit: 10,
-            numCandidates: 100
+            limit: config('vector.search.limit'),
+            numCandidates: config('vector.search.num_candidates')
         );
 
         // Format results with score and selected fields
