@@ -9,7 +9,7 @@ This repository accompanies an article about implementing vector search in Larav
 **Key Learning Objectives:**
 - Integrate MongoDB Atlas Vector Search with Laravel
 - Implement semantic search using embeddings (Voyage AI)
-- Build a production-ready movie search API
+- Build a movie search API
 
 ## Tech Stack
 
@@ -393,6 +393,129 @@ curl -X POST http://localhost:8000/api/movie-search-vector \
   -d '{"query": "outlaws on the run from law enforcement"}'
 ```
 
+### Important Note for SQL Users
+
+**No migrations needed!** If you're coming from Laravel with SQL databases, you might be looking for migration files. MongoDB is schema-less, so you don't need to run migrations. The `sample_mflix` database already exists in MongoDB Atlas with the movie data. Just connect and start querying!
+
+Other differences from SQL-based Laravel:
+- Models extend `MongoDB\Laravel\Eloquent\Model` instead of standard `Eloquent\Model`
+- No migration files or `php artisan migrate` needed
+- Use `.env` for `DB_DSN` (connection string) instead of separate host/port/database variables
+- Session, cache, and queue should use `file` or `array` drivers (not `database`)
+
+## Configuration
+
+### Vector Search Configuration
+
+All vector search parameters are configured in `config/vector.php`. Most have sensible defaults, but you can override them in your `.env` file:
+
+```env
+# Collection and field configuration
+MONGODB_COLLECTION=movies              # Default: movies
+VECTOR_FIELD_PATH=embeddings           # Default: embeddings
+
+# Vector index configuration
+VECTOR_INDEX_NAME=movies_vector_index  # Default: movies_vector_index
+VECTOR_DIMENSIONS=512                  # Must match your embedding model
+VECTOR_SIMILARITY=cosine               # Options: cosine, euclidean, dotProduct
+VECTOR_INDEX_DELETE_WAIT_TIME=30       # Seconds to wait for index deletion
+VECTOR_INDEX_DELETE_WAIT_INTERVAL=2    # Check interval during deletion
+
+# Embedding generation configuration
+EMBEDDING_BATCH_SIZE=10                # Movies processed per batch
+EMBEDDING_SAFETY_LIMIT=100             # Max movies per command invocation
+EMBEDDING_BATCH_DELAY_MS=100           # Delay between batches (rate limiting)
+
+# Vector search query configuration
+VECTOR_SEARCH_LIMIT=10                 # Number of results to return
+VECTOR_SEARCH_NUM_CANDIDATES=100       # Candidates to consider during search
+```
+
+**Important**: `VECTOR_DIMENSIONS` must match your embedding model:
+- Voyage AI `voyage-3-lite`: **512 dimensions** (this project's default)
+- Other models: Check their documentation for dimensions
+
+### When to Adjust These Values
+
+**For Production:**
+- Increase `EMBEDDING_SAFETY_LIMIT` if you need to process more movies (but watch API costs!)
+- Adjust `EMBEDDING_BATCH_DELAY_MS` if you hit Voyage AI rate limits
+- Increase `VECTOR_SEARCH_LIMIT` for more search results per query
+
+**For Development:**
+- Keep defaults - they're optimized for tutorial usage
+- Use `--limit` flag when testing: `php artisan embeddings:generate --limit=10`
+
+## Troubleshooting
+
+### MongoDB Connection Issues
+
+**Problem**: `Failed to connect to MongoDB` or connection timeouts
+
+**Solutions**:
+1. Verify your MongoDB Atlas cluster is running (check atlas.mongodb.com)
+2. Ensure your IP address is whitelisted in MongoDB Atlas Network Access
+3. Check your `.env` connection string format:
+   ```env
+   DB_DSN=mongodb+srv://username:password@cluster.mongodb.net/sample_mflix?retryWrites=true&w=majority
+   ```
+4. If username/password contain special characters, URL-encode them
+5. Verify `sample_mflix` database is loaded (it's a free sample dataset in Atlas)
+
+### Voyage AI API Issues
+
+**Problem**: `VOYAGE_AI_API_KEY is not set` or API errors
+
+**Solutions**:
+1. Get a free API key from [voyageai.com](https://voyageai.com)
+2. Add it to `.env`:
+   ```env
+   VOYAGE_AI_API_KEY=pa-xxxxxxxxxxxxx
+   ```
+3. Test the connection: `curl http://localhost:8000/api/embedding-model-info`
+
+**Problem**: Rate limiting or quota errors
+
+**Solutions**:
+1. Reduce `EMBEDDING_BATCH_SIZE` in `.env` (try 5 instead of 10)
+2. Increase `EMBEDDING_BATCH_DELAY_MS` to 500 or 1000
+3. Use `--limit` flag to process fewer movies at once
+
+### Vector Search Not Working
+
+**Problem**: Search returns no results or errors
+
+**Solutions**:
+1. **Verify embeddings exist**: Check a movie in MongoDB Atlas - does it have an `embeddings` field?
+2. **Check index status**: Run `php artisan vector:create-index` - it should show "already exists" if working
+3. **Wait for index**: MongoDB Atlas indexes can take a few minutes to become active after creation
+4. **Verify dimensions match**: Check `.env` has `VECTOR_DIMENSIONS=512` (must match Voyage AI model)
+5. **Test with simple query**: Try `{"query": "adventure"}` first before complex queries
+
+**Problem**: `Index not found` error
+
+**Solution**: The vector index hasn't been created yet or is still building:
+```bash
+# Check if index exists
+php artisan vector:create-index
+
+# If it says "already exists", wait 2-3 minutes for MongoDB Atlas to build it
+# Then try your search again
+```
+
+### Command Issues
+
+**Problem**: `embeddings:generate` command times out or stops
+
+**Solutions**:
+1. Use `--limit` flag to process fewer movies: `php artisan embeddings:generate --limit=20`
+2. The safety limit caps at 100 movies per run - this is intentional to prevent high API costs
+3. To process more, increase `EMBEDDING_SAFETY_LIMIT` in `.env` (carefully!)
+
+**Problem**: Tests fail with MongoDB connection errors
+
+**Solution**: The `phpunit.xml` is configured to use MongoDB for testing. Ensure your MongoDB Atlas connection is active when running tests.
+
 ## Project Structure
 
 - [routes/api.php](routes/api.php) - API endpoint definitions
@@ -402,7 +525,7 @@ curl -X POST http://localhost:8000/api/movie-search-vector \
 - [app/Console/Commands/DeleteEmbeddings.php](app/Console/Commands/DeleteEmbeddings.php) - CLI for deleting embeddings
 - [app/Console/Commands/CreateVectorIndex.php](app/Console/Commands/CreateVectorIndex.php) - CLI for creating vector search index
 - [config/database.php](config/database.php) - MongoDB configuration
-- `CLAUDE.md` - Detailed development notes (not in repo)
+- [config/vector.php](config/vector.php) - Vector search configuration (NEW)
 
 ## MongoDB Schema
 
@@ -425,11 +548,11 @@ Movies collection structure (sample_mflix database):
 
 This project demonstrates how to implement semantic vector search in a practical movie database application context. By following along, you'll learn:
 
-- How to implement production-ready vector search with Laravel
+- How to implement vector search with Laravel & MongoDB
 - Best practices for MongoDB Atlas Vector Search integration
-- Real-world embedding generation workflows with Voyage AI
+- Vector embedding generation workflows with Voyage AI
 - Building semantic search that understands meaning, not just keywords
-- Efficient batch processing for embedding generation
+- Example of batch processing for embedding generation
 
 # Semantic Search Query Suggestions
 
@@ -558,6 +681,22 @@ These semantic search queries successfully find relevant movies because:
 ## Laravel Framework
 
 Built on Laravel 12 - a web application framework with expressive, elegant syntax. Learn more at [laravel.com](https://laravel.com)
+
+## Testing
+
+To verify functionality and spot regressions during refactoring, this project includes a  test suite covering vector configuration, API endpoints, and CLI commands.
+
+Run tests with:
+```bash
+php artisan test
+```
+
+The test suite includes:
+- Unit tests for vector configuration and Voyage AI service
+- Feature tests for all API endpoints
+- Feature tests for CLI commands
+
+Note: Tests require an active MongoDB Atlas connection as configured in `phpunit.xml`.
 
 ## Contributing
 
