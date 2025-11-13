@@ -37,18 +37,124 @@ This repository accompanies an article about implementing vector search in Larav
 |----------|--------|--------|-------------|
 | `/api/hello` | GET | ✅ | Test endpoint to verify API routing |
 
+**Example Request:**
+```bash
+curl http://localhost:8000/api/hello
+```
+
+**Example Response:**
+```json
+{
+  "response": "hello world"
+}
+```
+
+---
+
+| Endpoint | Method | Status | Description |
+|----------|--------|--------|-------------|
+| `/api/mongodb-test` | GET | ✅ | Test MongoDB Atlas connection and display database info |
+
+**Example Request:**
+```bash
+curl http://localhost:8000/api/mongodb-test
+```
+
+**Example Response:**
+```json
+{
+  "status": "success",
+  "connection": "MongoDB connection successful",
+  "database": "sample_mflix",
+  "collections_found": 6,
+  "collections": ["users", "embedded_movies", "movies", "sessions", "theaters", "comments"],
+  "movies_collection": {
+    "exists": true,
+    "document_count": 21349
+  }
+}
+```
+
+---
+
 ### Movie Query Endpoints
 
 | Endpoint | Method | Status | Description |
 |----------|--------|--------|-------------|
 | `/api/get-movie-by-title/{title}` | GET | ✅ | Retrieve movie by exact title match |
 
+**Example Request:**
+```bash
+curl http://localhost:8000/api/get-movie-by-title/Titanic
+```
+
+**Example Response:**
+```json
+{
+  "_id": {"$oid": "573a139af29313caabcebf1b"},
+  "title": "Titanic",
+  "year": 1996,
+  "plot": "A woman's heart is divided between love and duty...",
+  "genres": ["Drama", "Romance"],
+  "cast": ["Peter Gallagher", "George C. Scott", "Catherine Zeta-Jones"],
+  "directors": ["Robert Lieberman"]
+}
+```
+
+---
+
 ### Voyage AI Embedding Endpoints
 
 | Endpoint | Method | Status | Description |
 |----------|--------|--------|-------------|
 | `/api/embedding-model-info` | GET | ✅ | Test Voyage AI connection and get model info |
+
+**Example Request:**
+```bash
+curl http://localhost:8000/api/embedding-model-info
+```
+
+**Example Response:**
+```json
+{
+  "status": "connected",
+  "model": "voyage-3-lite",
+  "embedding_dimensions": 512,
+  "api_response": {
+    "model": "voyage-3-lite",
+    "usage": {
+      "total_tokens": 2
+    }
+  },
+  "configured": true
+}
+```
+
+---
+
+| Endpoint | Method | Status | Description |
+|----------|--------|--------|-------------|
 | `/api/embedding-model-vectorize/{input}` | GET | ✅ | Generate embedding for a single text input |
+
+**Example Request:**
+```bash
+curl http://localhost:8000/api/embedding-model-vectorize/adventure
+```
+
+**Example Response:**
+```json
+{
+  "input": "adventure",
+  "embedding": [0.123, -0.456, 0.789, ...],
+  "embedding_dimensions": 512,
+  "model": "voyage-3-lite",
+  "usage": {
+    "total_tokens": 1
+  }
+}
+```
+
+---
 
 ### Search Endpoints
 
@@ -56,7 +162,7 @@ This repository accompanies an article about implementing vector search in Larav
 |----------|--------|--------|-------------|
 | `/api/movie-search-vector` | POST | ✅ | Semantic search using vector embeddings |
 
-**Example `/api/movie-search-vector` Request:**
+**Example Request:**
 ```bash
 curl -X POST http://localhost:8000/api/movie-search-vector \
   -H "Content-Type: application/json" \

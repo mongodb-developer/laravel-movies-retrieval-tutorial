@@ -20,6 +20,38 @@ class ApiEndpointsTest extends TestCase
     }
 
     /**
+     * Test MongoDB connection test endpoint
+     */
+    public function test_mongodb_test_endpoint(): void
+    {
+        $response = $this->get('/api/mongodb-test');
+
+        // Should return 200 if connected, or 500 if connection fails
+        $this->assertContains($response->status(), [200, 500]);
+
+        if ($response->status() === 200) {
+            $response->assertJsonStructure([
+                'status',
+                'connection',
+                'database',
+                'collections_found',
+                'collections',
+                'movies_collection' => [
+                    'exists',
+                    'document_count'
+                ]
+            ]);
+            $response->assertJson([
+                'status' => 'success'
+            ]);
+        } else {
+            $response->assertJson([
+                'status' => 'error'
+            ]);
+        }
+    }
+
+    /**
      * Test embedding model info endpoint returns status
      */
     public function test_embedding_model_info_endpoint(): void
