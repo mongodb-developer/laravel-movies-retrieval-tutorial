@@ -37,9 +37,8 @@ class CreateVectorIndex extends Command
         $this->newLine();
 
         try {
-            // Get the MongoDB collection instance
-            $connection = DB::connection('mongodb');
-            $collection = $connection->getCollection($collectionName);
+            // Get the MongoDB collection instance with dynamic appName
+            $collection = $this->getMongoCollection($collectionName);
 
             // Check if vector index already exists
             $existingIndex = $this->findExistingIndex($collection, $indexName);
@@ -60,8 +59,9 @@ class CreateVectorIndex extends Command
                         sleep($waitInterval);
                         $elapsed += $waitInterval;
 
-                        // Check if index still exists
-                        $stillExists = $this->findExistingIndex($collection, $indexName);
+                        // Check if index still exists (refresh collection connection)
+                        $refreshedCollection = $this->getMongoCollection($collectionName);
+                        $stillExists = $this->findExistingIndex($refreshedCollection, $indexName);
                         if (!$stillExists) {
                             $this->info('Index deletion confirmed.');
                             break;
@@ -163,5 +163,24 @@ class CreateVectorIndex extends Command
                 ['Status', $index['status'] ?? 'N/A'],
             ]
         );
+    }
+
+    /**
+     * Get MongoDB collection with dynamic appName parameter
+     */
+    private function getMongoCollection(string $collectionName)
+    {
+        $dsn = config('database.connections.mongodb.dsn');
+        $database = config('database.connections.mongodb.database');
+        $appName = 'devrel-laravel-v-search-2025';
+
+        // Dynamically append appName to connection string
+        $separator = parse_url($dsn, PHP_URL_QUERY) ? '&' : '?';
+        $clientDsn = $dsn . $separator . 'appName=' . urlencode($appName);
+
+        // Create MongoDB client with appName
+        $client = new \MongoDB\Client($clientDsn);
+
+        return $client->selectCollection($database, $collectionName);
     }
 }

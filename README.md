@@ -31,6 +31,8 @@ This repository accompanies an article about implementing vector search in Larav
 
 ## API Endpoints
 
+Note: the exemples below assume you're running on the default port 8000 when you develop locally. Adapt the URLs to your environment.
+
 ### Core Endpoints
 
 | Endpoint | Method | Status | Description |
