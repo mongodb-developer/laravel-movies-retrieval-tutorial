@@ -19,8 +19,8 @@ services:
     # local-path : container-path
     #
     volumes:
-    # public web files
-    - ${NGINX_WEBROOT_HOST_PATH}:${NGINX_WEBROOT_CONTAINER_PATH}
+    # public web files - mount at /workspace for Codespaces compatibility
+    - ..:/workspace:cached
     # .ini location
     - ${NGINX_HOST_CONFD_DIR}:${NGINX_CONTAINER_CONFD_DIR}
     depends_on:
@@ -35,10 +35,12 @@ services:
         RUNTIME_PHP_IMAGE: ${PHP_IMAGE}
     image: ${PHP_IMAGE}
     # container-path
-    working_dir: ${PHP_WEBROOT_CONTAINER_PATH}
+    working_dir: /workspace
     # disk local-path
+    # For Codespaces: mounts at /workspace (default Codespaces behavior)
+    # For local Docker: uses relative path from .env
     volumes:
-      - ${PHP_WEBROOT_HOST_PATH}:${PHP_WEBROOT_CONTAINER_PATH}
+      - ..:/workspace:cached
     # we don't need to expose the port 9003 here for Xdebug because the
     # connection comes from inside the PHP container to the IDE via port 9003
 
