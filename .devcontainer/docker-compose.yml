@@ -1,50 +1,91 @@
-# build command: docker compose build
-# docker uses the .env file BY DEFAULT. Any other name and you'll have to specify it in the command line
-# docker compose --env-file FILENAME.env build
+# ============================================================
+# Laravel MongoDB Vector Search - Docker Compose Configuration
+# ============================================================
+# This file defines the development environment with two services:
+# 1. nginx - Web server that handles HTTP requests
+# 2. php - PHP-FPM service that runs Laravel application code
+#
+# Usage:
+#   docker compose build              # Build the images
+#   docker compose up -d              # Start containers in background
+#   docker compose down               # Stop and remove containers
+#   docker compose logs -f            # View logs
+#
+# Environment variables are loaded from .env file in this directory
+# ============================================================
 
-# docker compose version
+# Docker Compose file format version
 version: '3.4'
 
-# Services
+# ============================================================
+# Service Definitions
+# ============================================================
 services:
 
-  # Nginx Service
+  # ------------------------------------------------------------
+  # Nginx Web Server
+  # ------------------------------------------------------------
+  # Serves static files and proxies PHP requests to php-fpm
   nginx:
-
+    # Use official nginx alpine image (lightweight)
     image: ${NGINX_IMAGE}
+
+    # Port mapping: host:container
+    # Exposes container port 80 to host port 80
     ports:
       - ${NGINX_HOST_PORT}:${NGINX_CONTAINER_PORT}
 
-    # path is relative to where the docker-compose.yml file is.
-    # local-path : container-path
-    #
+    # Volume mounts (host:container)
     volumes:
-    # public web files - mount at /workspace for Codespaces compatibility
-    - ..:/workspace:cached
-    # .ini location
-    - ${NGINX_HOST_CONFD_DIR}:${NGINX_CONTAINER_CONFD_DIR}
+      # Mount the Laravel project at /workspace
+      # ".." means parent directory (the project root)
+      # "cached" improves performance on macOS/Windows
+      - ..:/workspace:cached
+
+      # Mount nginx configuration files
+      # This allows us to customize nginx settings without rebuilding
+      - ${NGINX_HOST_CONFD_DIR}:${NGINX_CONTAINER_CONFD_DIR}
+
+    # nginx depends on php service being available
     depends_on:
       - php
 
-  # PHP Service
+  # ------------------------------------------------------------
+  # PHP-FPM Service
+  # ------------------------------------------------------------
+  # Runs the Laravel application code
   php:
+    # Build configuration
     build:
+      # Build context is the php folder containing Dockerfile
       context: ./.docker/php
       dockerfile: Dockerfile
       args:
+        # Pass PHP version from .env to Dockerfile
         RUNTIME_PHP_IMAGE: ${PHP_IMAGE}
-    image: ${PHP_IMAGE}
-    # container-path
-    working_dir: /workspace
-    # disk local-path
-    # For Codespaces: mounts at /workspace (default Codespaces behavior)
-    # For local Docker: uses relative path from .env
-    volumes:
-      - ..:/workspace:cached
-    # we don't need to expose the port 9003 here for Xdebug because the
-    # connection comes from inside the PHP container to the IDE via port 9003
 
-# Notes:
-#
-# From Docker Compose version 3.4 the name of the volume can be dynamically generated from environment variables placed in an .env file (this file has to be in the same folder as docker-compose.yml is).
-#
+    # Tag the built image with this name
+    image: ${PHP_IMAGE}
+
+    # Default working directory inside the container
+    # This is where commands run when you exec into the container
+    working_dir: /workspace
+
+    # Volume mounts
+    volumes:
+      # Mount the Laravel project at /workspace
+      # This is the same location where devcontainer.json's workspaceFolder points
+      # Works for both local Docker and GitHub Codespaces
+      - ..:/workspace:cached
+
+    # Note: Port 9000 (php-fpm) is not exposed externally
+    # nginx communicates with php-fpm internally via Docker network
+    # Xdebug uses port 9003 and connects FROM the container TO the IDE
+
+# ============================================================
+# Additional Notes
+# ============================================================
+# - Volume names can use environment variables from .env
+# - Docker Compose automatically creates a network for services to communicate
+# - Services can reach each other by service name (e.g., php:9000 from nginx)
+# - The "cached" volume flag optimizes file sync on macOS/Windows

@@ -1,38 +1,62 @@
 {
+	// Name displayed in VS Code when opening the devcontainer
 	"name": "laravel-mongodb-vector-search",
 
-	// Mandatory definition for .devcontainer
-	//
-	// which service AS DEFINED IN .devcontainer/docker-compose.yml
-	// do we want VS Code to attach to?
-	// here, we choose the "php" service since that's where our code is executed
+	// ============================================================
+	// Docker Compose Configuration
+	// ============================================================
+	// Specifies which service from docker-compose.yml VS Code should attach to
+	// We attach to "php" because that's where our Laravel code runs and where
+	// we'll execute artisan commands, composer, etc.
     "service": "php",
 
-	// we have multiple containers (nginx, PHP)
-	// so we'll use a compose .yml file instead of defining the services in devcontainer.json
+	// Path to docker-compose.yml file (relative to this devcontainer.json)
+	// Using docker-compose allows us to run multiple containers (nginx + php)
+	// instead of defining everything in this file
     "dockerComposeFile": "./docker-compose.yml",
 
+	// What to do when VS Code closes: "stopCompose" stops all containers
+	// Options: "none" (leave running), "stopCompose" (stop all)
 	"shutdownAction": "stopCompose",
 
-	// Mandatory definition for .devcontainer
-	//
-	// workspaceFolder describes the CONTAINER folder
-	// in which the "service" (php here) is configured to mount the project
-	// Set to /workspace for Codespaces compatibility
-	// Docker Compose will handle mounting to /var/www/htdoc inside the php container
+	// ============================================================
+	// Workspace Configuration
+	// ============================================================
+	// The directory inside the container where VS Code should open
+	// Must match where docker-compose.yml mounts the code
+	// Our docker-compose.yml mounts the repo at /workspace
 	"workspaceFolder": "/workspace",
 
-	// "xdebug.php-debug" = official XDEBUG extension
+	// Run commands as root user inside the container
+	// Required for installing packages and running Laravel commands
+	// without permission issues
+	"remoteUser": "root",
+
+	// ============================================================
+	// VS Code Extensions
+	// ============================================================
+	// Extensions to automatically install inside the devcontainer
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				// PHP Debug extension for Xdebug support
+				// Allows setting breakpoints and debugging PHP code
 				"xdebug.php-debug"
 			]
 		}
 	},
 
+	// ============================================================
+	// Port Forwarding
+	// ============================================================
+	// Automatically forward port 80 from the container to your local machine
+	// This allows you to access http://localhost to test the Laravel app
 	"forwardPorts": [80],
 
-	// execute our one-time repo init if /vendor/ does not exist
+	// ============================================================
+	// Lifecycle Commands
+	// ============================================================
+	// Command to run after the container is created (empty = none)
+	// Could be used for: "composer install", "php artisan migrate", etc.
 	"postCreateCommand": ""
 }

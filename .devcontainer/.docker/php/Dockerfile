@@ -1,60 +1,100 @@
-# defined in docker-compose.yml, from docker-env.env
+# ============================================================
+# Laravel MongoDB Vector Search - PHP Development Container
+# ============================================================
+# This Dockerfile builds a PHP 8.2-FPM container with:
+# - MongoDB PHP extension for database connectivity
+# - Xdebug for debugging support
+# - Composer for dependency management
+# - Common development tools (git, wget, unzip, ping)
+# ============================================================
+
+# Get PHP version from docker-compose.yml build args
+# Default to php:8.2-fpm if not specified
 ARG RUNTIME_PHP_IMAGE
 
-# Use the specified image as the base
+# Use official PHP-FPM image as base
 FROM ${RUNTIME_PHP_IMAGE}
 
-# create the log file and provide permission to the www-data user
+# ============================================================
+# Setup Log Files
+# ============================================================
+# Create log files and set proper permissions for www-data user
+# (the user that php-fpm runs as)
+
+# Xdebug log file for debugging connection issues
 RUN touch /tmp/xdebug.log && chown www-data:www-data /tmp/xdebug.log
 
-# same thing for the PHP error log
+# PHP error log file for application errors
 RUN touch /var/log/php-errors.log && chown www-data:www-data /var/log/php-errors.log
 
-# Update the packages
-# Install system packages required for MongoDB extension
-# 'iputils-ping' to get the ping command for debugging
+# ============================================================
+# Install System Dependencies
+# ============================================================
+# Install packages required for PHP extensions and development
+# - libssl-dev: Required for MongoDB extension
+# - wget: Download files
+# - git: Version control
+# - unzip: Extract archives
+# - iputils-ping: Network debugging (ping command)
 RUN apt-get update \
-    && apt-get install -y libssl-dev wget git unzip iputils-ping
+    && apt-get install -y \
+        libssl-dev \
+        wget \
+        git \
+        unzip \
+        iputils-ping
 
+# Zip extension dependencies and installation
+# Clean up apt lists after to reduce image size
 RUN apt-get update \
     && apt-get install -y libzip-dev \
     && docker-php-ext-install zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Test if already installed and
-# install the <latest> mongodb PHP extension
-# RUN pecl install mongodb && docker-php-ext-enable mongodb
-RUN bash -c '[[ -n "$(pecl list | grep mongodb)" ]]\
+# ============================================================
+# Install PHP Extensions via PECL
+# ============================================================
+
+# MongoDB PHP Extension
+# Conditional install: only installs if not already present
+# This allows for faster rebuilds when the extension exists
+RUN bash -c '[[ -n "$(pecl list | grep mongodb)" ]] \
  || (pecl install mongodb && docker-php-ext-enable mongodb)'
 
-# Test if already installed and
-# install and enable XDEBUG <latest>
-# RUN pecl install xdebug && docker-php-ext-enable xdebug
-RUN bash -c '[[ -n "$(pecl list | grep xdebug)" ]]\
+# Xdebug Extension
+# Enables step-through debugging in VS Code
+RUN bash -c '[[ -n "$(pecl list | grep xdebug)" ]] \
  || (pecl install xdebug && docker-php-ext-enable xdebug)'
 
-# Task: copy rep's PHP .ini files to be automatically parsed
-#
-# directory is related to the PHP service context
-# dot NOT use ./filename.ext for root files
-#         use filename.ext
+# ============================================================
+# Copy PHP Configuration Files
+# ============================================================
+# Custom PHP and Xdebug settings
+# Files are copied from .devcontainer/.docker/php/ directory
+# Note: Paths are relative to the build context (set in docker-compose.yml)
+
 COPY docker-php.ini /usr/local/etc/php/conf.d/
 COPY xdebug.ini /usr/local/etc/php/conf.d/
 
+# ============================================================
 # Install Composer
-# ----------------------------------------------------------
-# download composer
+# ============================================================
+# Composer is PHP's dependency manager, required for Laravel
+
+# Download composer installer and run it
 RUN curl -sS https://getcomposer.org/installer | php
-# copy composer to a place where it can be globally executed
+
+# Move composer to global bin directory so it's available as 'composer' command
 RUN mv composer.phar /usr/local/bin/composer
 
-# our repo is in var/www/htdoc
-# COPY init_repo.sh /var/www/htdoc/
+# ============================================================
+# Set Working Directory
+# ============================================================
+# Set default directory for commands executed in the container
+# This matches where docker-compose.yml mounts the Laravel project
+# /workspace is also where VS Code's devcontainer opens
+WORKDIR /workspace
 
-# Set the working directory in the container
-WORKDIR /var/www/htdoc
-
-# start out script that runs composer install, but ONLY if /vendor/ does not exist
-# WARNING: the commands below crash CodeSpaces. Not using for now.
-#RUN chmod +x /var/www/htdoc/init_repo.sh
-#ENTRYPOINT ["/var/www/htdoc/init_repo.sh"]
+# Container is now ready for Laravel development!
+# PHP extensions: mongodb, xdebug, zip
+# Tools: composer, git, wget, unzip, ping
