@@ -25,7 +25,12 @@
 	// The directory inside the container where VS Code should open
 	// Must match where docker-compose.yml mounts the code
 	// Our docker-compose.yml mounts the repo at /workspace
-	"workspaceFolder": "/workspace",
+
+	// works in local DevContainer
+	 "workspaceFolder": "/workspace",
+	 
+	// "workspaceFolder": "/workspaces/${localWorkspaceFolder}",
+	
 
 	// Run commands as root user inside the container
 	// Required for installing packages and running Laravel commands
