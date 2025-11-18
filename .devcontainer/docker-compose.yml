@@ -37,10 +37,10 @@ services:
 
     # Volume mounts (host:container)
     volumes:
-      # Mount the Laravel project at /workspace
-      # ".." means parent directory (the project root)
-      # "cached" improves performance on macOS/Windows
-      - ..:/workspace:cached
+      # Mount the Laravel project - workspaceMount in devcontainer.json handles this
+      # for the php service, but nginx needs its own mount
+      # Using hardcoded folder name to match workspaceMount
+      - ..:/workspaces/laravel-movies-retrieval-tutorial:cached
 
       # Mount nginx configuration files
       # This allows us to customize nginx settings without rebuilding
@@ -69,14 +69,13 @@ services:
 
     # Default working directory inside the container
     # This is where commands run when you exec into the container
-    working_dir: /workspace
+    working_dir: /workspaces/laravel-movies-retrieval-tutorial
 
     # Volume mounts
+    # Note: The workspaceMount in devcontainer.json overrides this for the php service
+    # This volume definition is kept for compatibility but workspaceMount takes precedence
     volumes:
-      # Mount the Laravel project at /workspace
-      # This is the same location where devcontainer.json's workspaceFolder points
-      # Works for both local Docker and GitHub Codespaces
-      - ..:/workspace:cached
+      - ..:/workspaces/laravel-movies-retrieval-tutorial:cached
 
     # Note: Port 9000 (php-fpm) is not exposed externally
     # nginx communicates with php-fpm internally via Docker network

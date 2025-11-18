@@ -23,14 +23,9 @@
 	// Workspace Configuration
 	// ============================================================
 	// The directory inside the container where VS Code should open
-	// Must match where docker-compose.yml mounts the code
-	// Our docker-compose.yml mounts the repo at /workspace
-
-	// works in local DevContainer
-	 "workspaceFolder": "/workspace",
-	 
-	// "workspaceFolder": "/workspaces/${localWorkspaceFolder}",
-	
+	// Hardcoded to match docker-compose.yml volume mounts
+	// Works in both local devcontainer and GitHub Codespaces
+	"workspaceFolder": "/workspaces/laravel-movies-retrieval-tutorial",
 
 	// Run commands as root user inside the container
 	// Required for installing packages and running Laravel commands
