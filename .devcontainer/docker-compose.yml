@@ -14,8 +14,8 @@
 # Environment variables are loaded from .env file in this directory
 # ============================================================
 
-# Docker Compose file format version
-version: '3.4'
+# Docker Compose file format version (optional in modern docker-compose)
+# Removing to avoid obsolete warning message
 
 # ============================================================
 # Service Definitions
@@ -28,12 +28,12 @@ services:
   # Serves static files and proxies PHP requests to php-fpm
   nginx:
     # Use official nginx alpine image (lightweight)
-    image: ${NGINX_IMAGE}
+    image: nginx:alpine
 
     # Port mapping: host:container
     # Exposes container port 80 to host port 80
     ports:
-      - ${NGINX_HOST_PORT}:${NGINX_CONTAINER_PORT}
+      - "80:80"
 
     # Volume mounts (host:container)
     volumes:
@@ -44,7 +44,7 @@ services:
 
       # Mount nginx configuration files
       # This allows us to customize nginx settings without rebuilding
-      - ${NGINX_HOST_CONFD_DIR}:${NGINX_CONTAINER_CONFD_DIR}
+      - ./.docker/nginx/conf.d:/etc/nginx/conf.d
 
     # nginx depends on php service being available
     depends_on:
@@ -61,11 +61,11 @@ services:
       context: ./.docker/php
       dockerfile: Dockerfile
       args:
-        # Pass PHP version from .env to Dockerfile
-        RUNTIME_PHP_IMAGE: ${PHP_IMAGE}
+        # Pass PHP version to Dockerfile
+        RUNTIME_PHP_IMAGE: php:8.2-fpm
 
     # Tag the built image with this name
-    image: ${PHP_IMAGE}
+    image: laravel-movies-php:8.2-fpm
 
     # Default working directory inside the container
     # This is where commands run when you exec into the container
