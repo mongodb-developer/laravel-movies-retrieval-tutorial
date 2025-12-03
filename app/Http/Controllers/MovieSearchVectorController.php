@@ -53,7 +53,7 @@ class MovieSearchVectorController extends Controller
             // Format results with score and selected fields
             $formattedResults = $results->map(function ($movie) {
                 return [
-                    '_id' => $movie->_id,
+                    '_id' => ['$oid' => (string) $movie->_id],
                     'title' => $movie->title,
                     'plot' => $movie->plot,
                     'fullplot' => $movie->fullplot,

@@ -58,5 +58,7 @@
 	// ============================================================
 	// Command to run after the container is created (empty = none)
 	// Could be used for: "composer install", "php artisan migrate", etc.
-	"postCreateCommand": ""
+
+	// execute our one-time repo init if /vendor/ does not exist
+	"postCreateCommand": "sh init_repo.sh"
 }
