@@ -2,6 +2,11 @@
 	// Name displayed in VS Code when opening the devcontainer
 	"name": "laravel-mongodb-vector-search",
 
+	"features": {
+    // This line adds the GitHub CLI to your container
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  	},
+
 	// ============================================================
 	// Docker Compose Configuration
 	// ============================================================
@@ -60,5 +65,5 @@
 	// Could be used for: "composer install", "php artisan migrate", etc.
 
 	// execute our one-time repo init if /vendor/ does not exist
-	"postCreateCommand": "sh init_repo.sh"
+	"postCreateCommand": "gh codespace ports visibility 80:public && sh init_repo.sh"
 }
