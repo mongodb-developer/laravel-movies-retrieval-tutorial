@@ -7,6 +7,15 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   	},
 
+
+	"portsAttributes": {
+    "80": {
+      "label": "Web App & API",
+      // This sets the default visibility to public, skipping the manual confirmation
+      "onAutoForward": "notify", 
+      "public": true 
+    }
+   },
 	// ============================================================
 	// Docker Compose Configuration
 	// ============================================================
