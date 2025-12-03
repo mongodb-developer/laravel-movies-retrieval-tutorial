@@ -366,36 +366,43 @@ VECTOR_SIMILARITY=cosine
 
 **How**: Use Voyage AI to vectorize the query, then perform MongoDB vector search using Laravel Eloquent.
 
-**Code Location**: [routes/api.php:103-172](routes/api.php#L103-L172)
+**Code Location**: [app/Http/Controllers/MovieSearchVectorController.php](app/Http/Controllers/MovieSearchVectorController.php)
 
 **Key Implementation Details:**
 
-1. **Query Vectorization** ([routes/api.php:114-131](routes/api.php#L114-L131)):
+1. **Query Vectorization** ([MovieSearchVectorController.php:33-42](app/Http/Controllers/MovieSearchVectorController.php#L33-L42)):
    ```php
    // Generate embedding for the query using VoyageAI
-   $voyageAI = new VoyageAIService();
    $result = $voyageAI->generateEmbeddings([$query]);
+
+   if (!$result['success']) {
+       return response()->json([
+           'error' => 'Failed to generate query embedding',
+           'message' => $result['error']
+       ], 500);
+   }
+
    $queryVector = $result['embeddings'][0]['embedding'];
    ```
 
-2. **Vector Search Using Eloquent** ([routes/api.php:133-140](routes/api.php#L133-L140)):
+2. **Vector Search Using Eloquent** ([MovieSearchVectorController.php:45-51](app/Http/Controllers/MovieSearchVectorController.php#L45-L51)):
    ```php
    // Perform vector search using Eloquent method
    $results = Movie::vectorSearch(
-       index: 'movies_vector_index',
-       path: 'embeddings',
+       index: config('vector.index.name'),
+       path: config('vector.field_path'),
        queryVector: $queryVector,
-       limit: 10,
-       numCandidates: 100
+       limit: config('vector.search.limit'),
+       numCandidates: config('vector.search.num_candidates')
    );
    ```
 
-3. **Result Formatting** ([routes/api.php:143-156](routes/api.php#L143-L156)):
+3. **Result Formatting** ([MovieSearchVectorController.php:54-67](app/Http/Controllers/MovieSearchVectorController.php#L54-L67)):
    ```php
    // Format results with score and selected fields
    $formattedResults = $results->map(function ($movie) {
        return [
-           '_id' => $movie->_id,
+           '_id' => ['$oid' => (string) $movie->_id],
            'title' => $movie->title,
            'plot' => $movie->plot,
            'fullplot' => $movie->fullplot,
