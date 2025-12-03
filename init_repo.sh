@@ -7,28 +7,11 @@ if [ ! -d "vendor" ]; then
 fi
 
 
-# Configuration
-PORT_NUMBER=80
-MAX_ATTEMPTS=10
-SLEEP_TIME=5 # seconds
+# try opening port 80 on Github Codespaces
+if [ -z "$CODESPACE_NAME" ]; then
+    echo "Not running in a codespace, exiting."
+    exit
+fi
 
-echo "Attempting to set port $PORT_NUMBER visibility to public..."
-
-# Loop to retry the command
-for i in $(seq 1 $MAX_ATTEMPTS); do
-    # The 'gh codespace ports visibility' command is non-interactive by default
-    # The -c or --codespace flag is used to select the codespace, but is usually
-    # optional when running inside the codespace.
-    
-    # Run the command and capture success/failure
-    if gh codespace ports visibility $PORT_NUMBER:public; then
-        echo "Successfully set port $PORT_NUMBER to public."
-        exit 0 # Exit the script successfully
-    fi
-    
-    echo "Attempt $i/$MAX_ATTEMPTS failed. Waiting $SLEEP_TIME seconds..."
-    sleep $SLEEP_TIME
-done
-
-echo "Error: Could not set port $PORT_NUMBER to public after $MAX_ATTEMPTS attempts."
-exit 1
+echo "Exposing ports"
+gh codespace ports visibility 80:public -c $CODESPACE_NAME
