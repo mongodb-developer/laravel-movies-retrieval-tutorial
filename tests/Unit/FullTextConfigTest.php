@@ -52,6 +52,8 @@ class FullTextConfigTest extends TestCase
         $this->assertContains('title', $config['index']['fields']);
         $this->assertContains('plot', $config['index']['fields']);
         $this->assertContains('fullplot', $config['index']['fields']);
+        $this->assertContains('cast', $config['index']['fields']);
+        $this->assertContains('directors', $config['index']['fields']);
         $this->assertEquals(30, $config['index']['delete_wait_time']);
         $this->assertEquals(2, $config['index']['delete_wait_interval']);
         $this->assertEquals(10, $config['search']['limit']);

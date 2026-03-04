@@ -21,6 +21,8 @@ return [
             'title',
             'plot',
             'fullplot',
+            'cast',
+            'directors',
         ],
 
         // Maximum time to wait for index deletion to propagate (seconds)
