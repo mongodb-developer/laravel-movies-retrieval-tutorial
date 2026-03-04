@@ -62,3 +62,4 @@ phpunit.xml
 
 # Claude documentation
 claude.md
+claude-shortterm.md

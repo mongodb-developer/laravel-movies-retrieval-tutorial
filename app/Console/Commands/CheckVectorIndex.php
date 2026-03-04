@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\MongoDBService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,14 @@ class CheckVectorIndex extends Command
     protected $description = 'Check the status of the MongoDB Atlas Vector Search index';
 
     /**
+     * Create a new command instance.
+     */
+    public function __construct(protected MongoDBService $mongoDBService)
+    {
+        parent::__construct();
+    }
+
+    /**
      * Execute the console command.
      */
     public function handle()
@@ -34,7 +43,7 @@ class CheckVectorIndex extends Command
 
         try {
             // Get the MongoDB collection instance with dynamic appName
-            $collection = $this->getMongoCollection($collectionName);
+            $collection = $this->mongoDBService->getCollection($collectionName);
 
             // List all search indexes
             $indexes = iterator_to_array($collection->listSearchIndexes());
@@ -141,24 +150,5 @@ class CheckVectorIndex extends Command
             $this->line('  3. The database and collection exist');
             return 1;
         }
-    }
-
-    /**
-     * Get MongoDB collection with dynamic appName parameter
-     */
-    private function getMongoCollection(string $collectionName)
-    {
-        $dsn = config('database.connections.mongodb.dsn');
-        $database = config('database.connections.mongodb.database');
-        $appName = 'devrel-laravel-v-search-2025';
-
-        // Dynamically append appName to connection string
-        $separator = parse_url($dsn, PHP_URL_QUERY) ? '&' : '?';
-        $clientDsn = $dsn . $separator . 'appName=' . urlencode($appName);
-
-        // Create MongoDB client with appName
-        $client = new \MongoDB\Client($clientDsn);
-
-        return $client->selectCollection($database, $collectionName);
     }
 }

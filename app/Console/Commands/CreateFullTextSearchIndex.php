@@ -6,21 +6,21 @@ use App\Services\MongoDBService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
-class CreateVectorIndex extends Command
+class CreateFullTextSearchIndex extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'vector:create-index {--force : Delete existing index before creating new one}';
+    protected $signature = 'fulltext:create-index {--force : Delete existing index before creating new one}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Create MongoDB Atlas Vector Search index for movies collection';
+    protected $description = 'Create MongoDB Atlas Full-Text Search index for movies collection';
 
     /**
      * Create a new command instance.
@@ -35,21 +35,20 @@ class CreateVectorIndex extends Command
      */
     public function handle()
     {
-        $indexName = config('vector.index.name');
-        $collectionName = config('vector.collection');
+        $indexName = config('fulltext.index.name', 'movies_fulltext_index');
+        $collectionName = config('vector.collection', 'movies');
 
-        // Get vector configuration
-        $vectorDimensions = config('vector.index.dimensions');
-        $vectorSimilarity = config('vector.index.similarity');
+        // Get full-text search configuration
+        $searchFields = config('fulltext.index.fields', ['title', 'plot', 'fullplot']);
 
-        $this->info('Creating vector search index for movies collection...');
+        $this->info('Creating full-text search index for movies collection...');
         $this->newLine();
 
         try {
             // Get the MongoDB collection instance with dynamic appName
             $collection = $this->mongoDBService->getCollection($collectionName);
 
-            // Check if vector index already exists
+            // Check if full-text index already exists
             $existingIndex = $this->findExistingIndex($collection, $indexName);
 
             if ($existingIndex) {
@@ -60,8 +59,8 @@ class CreateVectorIndex extends Command
                     $this->info('Waiting for deletion to complete...');
 
                     // Wait for deletion to propagate (MongoDB Atlas can take time)
-                    $maxWaitTime = config('vector.index.delete_wait_time');
-                    $waitInterval = config('vector.index.delete_wait_interval');
+                    $maxWaitTime = config('fulltext.index.delete_wait_time', 30);
+                    $waitInterval = config('fulltext.index.delete_wait_interval', 2);
                     $elapsed = 0;
 
                     while ($elapsed < $maxWaitTime) {
@@ -81,7 +80,7 @@ class CreateVectorIndex extends Command
 
                     $this->newLine();
                 } else {
-                    $this->warn("Vector search index '{$indexName}' already exists.");
+                    $this->warn("Full-text search index '{$indexName}' already exists.");
                     $this->info('Use --force flag to delete and recreate the index.');
                     $this->newLine();
                     $this->displayIndexInfo($existingIndex);
@@ -89,27 +88,30 @@ class CreateVectorIndex extends Command
                 }
             }
 
-            // Create vector search index
-            $this->info('Creating new vector search index...');
+            // Build field mappings for full-text search
+            $fieldMappings = [];
+            foreach ($searchFields as $field) {
+                $fieldMappings[$field] = [
+                    'type' => 'string'
+                ];
+            }
+
+            // Create full-text search index
+            $this->info('Creating new full-text search index...');
             $result = $collection->createSearchIndex(
                 [
-                    'fields' => [
-                        [
-                            'type' => 'vector',
-                            'path' => config('vector.field_path'),
-                            'numDimensions' => $vectorDimensions,
-                            'similarity' => $vectorSimilarity
-                        ]
+                    'mappings' => [
+                        'dynamic' => false,
+                        'fields' => $fieldMappings
                     ]
                 ],
                 [
-                    'name' => $indexName,
-                    'type' => 'vectorSearch'
+                    'name' => $indexName
                 ]
             );
 
             $this->newLine();
-            $this->info('✓ Vector search index created successfully!');
+            $this->info('✓ Full-text search index created successfully!');
             $this->newLine();
 
             // Display configuration
@@ -118,9 +120,8 @@ class CreateVectorIndex extends Command
                 [
                     ['Index Name', $indexName],
                     ['Collection', $collectionName],
-                    ['Vector Field', config('vector.field_path')],
-                    ['Dimensions', $vectorDimensions],
-                    ['Similarity Function', $vectorSimilarity],
+                    ['Search Fields', implode(', ', $searchFields)],
+                    ['Index Type', 'search (Lucene)'],
                 ]
             );
 
@@ -130,7 +131,7 @@ class CreateVectorIndex extends Command
             return 0;
 
         } catch (\Exception $e) {
-            $this->error('Failed to create vector search index.');
+            $this->error('Failed to create full-text search index.');
             $this->error('Error: ' . $e->getMessage());
             return 1;
         }
