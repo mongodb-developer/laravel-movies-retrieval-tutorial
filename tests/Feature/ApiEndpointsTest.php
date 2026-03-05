@@ -248,7 +248,14 @@ class ApiEndpointsTest extends TestCase
             ]);
             $this->assertEquals('space', $response->json('query'));
             $this->assertEquals('weighted', $response->json('search_type'));
-            $this->assertEquals(['title' => 5, 'plot' => 3, 'cast' => 2, 'directors' => 2, 'fullplot' => 1], $response->json('weights'));
+            $this->assertEquals([
+                'title_phrase' => 10,
+                'title_text' => 7,
+                'plot' => 3,
+                'cast' => 5,
+                'directors' => 2,
+                'fullplot' => 1
+            ], $response->json('weights'));
         }
     }
 }

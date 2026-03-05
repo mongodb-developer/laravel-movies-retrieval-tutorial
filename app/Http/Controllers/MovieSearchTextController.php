@@ -32,13 +32,13 @@ class MovieSearchTextController extends Controller
                 ->aggregate()
                 ->search(
                     operator: Search::text(
-                        path: config('fulltext.index.fields', ['title', 'plot', 'fullplot', 'cast', 'directors']),
+                        path: ['title', 'plot', 'fullplot', 'cast', 'directors'],
                         query: $query
                     ),
                     index: config('fulltext.index.name')
                 )
                 ->addFields(score: ['$meta' => 'searchScore'])
-                ->limit(config('fulltext.search.limit', 10))
+                ->limit(config('fulltext.search.limit'))
                 ->get();
 
             // Format results with score and selected fields
@@ -77,10 +77,11 @@ class MovieSearchTextController extends Controller
      * Perform weighted full-text search on movies.
      *
      * This endpoint performs text search with field-specific weights optimized
-     * for typical movie search behavior:
-     * - Title (5x): Highest weight for exact title matches
+     * for typical movie search behavior with layered title boosting:
+     * - Title exact phrase (10x): Highest weight for exact title matches
+     * - Title fuzzy text (7x): High weight for partial/fuzzy title matches
+     * - Cast (5x): High weight for actor-based searches
      * - Plot (3x): Medium-high weight for curated summaries
-     * - Cast (2x): Medium weight for actor-based searches
      * - Directors (2x): Medium weight for director-based searches
      * - Fullplot (1x): Standard weight for comprehensive descriptions
      */
@@ -96,19 +97,32 @@ class MovieSearchTextController extends Controller
             }
 
             // Perform weighted full-text search using Eloquent with compound Search builder
-            // Weights based on typical movie search patterns:
-            // - Title: 5 (primary identifier, exact matches rank highest)
-            // - Plot: 3 (curated summary, captures movie essence)
-            // - Cast: 2 (actor-based searches, 10-15% of queries)
-            // - Directors: 2 (director-based searches, 10-15% of queries)
-            // - Fullplot: 1 (comprehensive details, useful but can be verbose)
+            // Layered weighting strategy for optimal relevance:
+            // - Title phrase match: 10x (exact phrase "The Godfather" in title)
+            // - Title text match: 7x (fuzzy/partial matches like "Godfather")
+            // - Cast: 5x (actor-based searches - high priority)
+            // - Plot: 3x (curated summary, captures movie essence)
+            // - Directors: 2x (director-based searches)
+            // - Fullplot: 1x (comprehensive details, useful but can be verbose)
             $results = Movie::query()
                 ->aggregate()
                 ->search(
                     operator: Search::compound(
                         should: [
+                            // Exact phrase match on title - highest priority
+                            Search::phrase(
+                                path: 'title',
+                                query: $query,
+                                score: ['boost' => ['value' => 10]]
+                            ),
+                            // Fuzzy text match on title - high priority
                             Search::text(
                                 path: 'title',
+                                query: $query,
+                                score: ['boost' => ['value' => 7]]
+                            ),
+                            Search::text(
+                                path: 'cast',
                                 query: $query,
                                 score: ['boost' => ['value' => 5]]
                             ),
@@ -116,11 +130,6 @@ class MovieSearchTextController extends Controller
                                 path: 'plot',
                                 query: $query,
                                 score: ['boost' => ['value' => 3]]
-                            ),
-                            Search::text(
-                                path: 'cast',
-                                query: $query,
-                                score: ['boost' => ['value' => 2]]
                             ),
                             Search::text(
                                 path: 'directors',
@@ -137,7 +146,7 @@ class MovieSearchTextController extends Controller
                     index: config('fulltext.index.name')
                 )
                 ->addFields(score: ['$meta' => 'searchScore'])
-                ->limit(config('fulltext.search.limit', 10))
+                ->limit(config('fulltext.search.limit'))
                 ->get();
 
             // Format results with score and selected fields
@@ -161,7 +170,14 @@ class MovieSearchTextController extends Controller
                 'results' => $formattedResults,
                 'count' => $formattedResults->count(),
                 'search_type' => 'weighted',
-                'weights' => ['title' => 5, 'plot' => 3, 'cast' => 2, 'directors' => 2, 'fullplot' => 1],
+                'weights' => [
+                    'title_phrase' => 10,
+                    'title_text' => 7,
+                    'plot' => 3,
+                    'cast' => 5,
+                    'directors' => 2,
+                    'fullplot' => 1
+                ],
                 'index' => config('fulltext.index.name')
             ]);
 

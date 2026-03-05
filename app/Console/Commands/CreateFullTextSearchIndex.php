@@ -35,11 +35,11 @@ class CreateFullTextSearchIndex extends Command
      */
     public function handle()
     {
-        $indexName = config('fulltext.index.name', 'movies_fulltext_index');
-        $collectionName = config('vector.collection', 'movies');
+        $indexName = config('fulltext.index.name');
+        $collectionName = config('vector.collection');
 
         // Get full-text search configuration
-        $searchFields = config('fulltext.index.fields', ['title', 'plot', 'fullplot']);
+        $searchFields = ['title', 'plot', 'fullplot', 'cast', 'directors'];
 
         $this->info('Creating full-text search index for movies collection...');
         $this->newLine();

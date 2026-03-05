@@ -80,4 +80,19 @@ class MongoDBServiceTest extends TestCase
             'getClient should return MongoDB Client instance'
         );
     }
+
+    /**
+     * Test that getClient throws exception when APP_NAME is not configured
+     */
+    public function test_get_client_throws_exception_when_app_name_not_configured(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('APP_NAME must be configured in .env for MongoDB Atlas operations');
+
+        // Temporarily set app.name to empty string
+        config(['app.name' => '']);
+
+        $service = new MongoDBService();
+        $service->getClient(); // Should throw RuntimeException
+    }
 }

@@ -14,45 +14,48 @@ use MongoDB\Collection;
 class MongoDBService
 {
     /**
-     * Get MongoDB collection with proper client configuration for Atlas operations.
+     * Get the MongoDB client with proper appName configuration.
      *
      * This method dynamically appends the appName parameter to the connection string,
      * which is required for Atlas Search Index operations (listSearchIndexes, createSearchIndex, etc.)
      * to function correctly.
-     *
-     * @param string $collectionName The name of the collection to access
-     * @return Collection
-     */
-    public function getCollection(string $collectionName): Collection
-    {
-        $dsn = config('database.connections.mongodb.dsn');
-        $database = config('database.connections.mongodb.database');
-        $appName = config('app.name', 'Laravel');
-
-        // Dynamically append appName to connection string
-        $separator = parse_url($dsn, PHP_URL_QUERY) ? '&' : '?';
-        $clientDsn = $dsn . $separator . 'appName=' . urlencode($appName);
-
-        // Create MongoDB client with appName
-        $client = new Client($clientDsn);
-
-        return $client->selectCollection($database, $collectionName);
-    }
-
-    /**
-     * Get the MongoDB client with proper appName configuration.
      *
      * @return Client
      */
     public function getClient(): Client
     {
         $dsn = config('database.connections.mongodb.dsn');
-        $appName = config('app.name', 'Laravel');
+        $appName = config('app.name');
+
+        // Fail fast if APP_NAME is not configured
+        // OPTIONAL in production, added for DEVREL usage
+        if (empty($appName)) {
+            throw new \RuntimeException(
+                'APP_NAME must be configured in .env for MongoDB Atlas operations. ' .
+                'This is required for proper client identification in Atlas logs.'
+            );
+        }
 
         // Dynamically append appName to connection string
         $separator = parse_url($dsn, PHP_URL_QUERY) ? '&' : '?';
         $clientDsn = $dsn . $separator . 'appName=' . urlencode($appName);
 
         return new Client($clientDsn);
+    }
+
+    /**
+     * Get MongoDB collection with proper client configuration for Atlas operations.
+     *
+     * Uses getClient() internally to ensure consistent client configuration.
+     *
+     * @param string $collectionName The name of the collection to access
+     * @return Collection
+     */
+    public function getCollection(string $collectionName): Collection
+    {
+        $database = config('database.connections.mongodb.database');
+        $client = $this->getClient();
+
+        return $client->selectCollection($database, $collectionName);
     }
 }
