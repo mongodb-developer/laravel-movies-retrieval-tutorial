@@ -27,17 +27,12 @@ class FullTextConfigTest extends TestCase
 
         // Test top-level keys
         $this->assertArrayHasKey('index', $config);
-        $this->assertArrayHasKey('search', $config);
 
         // Test index configuration
         $this->assertArrayHasKey('name', $config['index']);
         $this->assertArrayHasKey('fields', $config['index']);
         $this->assertArrayHasKey('delete_wait_time', $config['index']);
         $this->assertArrayHasKey('delete_wait_interval', $config['index']);
-
-        // Test search configuration
-        $this->assertArrayHasKey('limit', $config['search']);
-        $this->assertArrayHasKey('fuzzy', $config['search']);
     }
 
     /**
@@ -56,8 +51,6 @@ class FullTextConfigTest extends TestCase
         $this->assertContains('directors', $config['index']['fields']);
         $this->assertEquals(30, $config['index']['delete_wait_time']);
         $this->assertEquals(2, $config['index']['delete_wait_interval']);
-        $this->assertEquals(10, $config['search']['limit']);
-        $this->assertTrue($config['search']['fuzzy']);
     }
 
     /**
@@ -71,8 +64,6 @@ class FullTextConfigTest extends TestCase
         $this->assertIsArray($config['index']['fields']);
         $this->assertIsInt($config['index']['delete_wait_time']);
         $this->assertIsInt($config['index']['delete_wait_interval']);
-        $this->assertIsInt($config['search']['limit']);
-        $this->assertIsBool($config['search']['fuzzy']);
     }
 
     /**

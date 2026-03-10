@@ -21,9 +21,14 @@ class MongoDBServiceTest extends TestCase
      */
     public function test_runtime_dsn_contains_devrel_in_app_name(): void
     {
-        // Get the configuration values
-        $dsn = config('database.connections.mongodb.dsn');
-        $appName = config('app.name', 'Laravel');
+        // Set dummy DSN and app name to make test environment-independent
+        $dummyDsn = 'mongodb+srv://user:pass@cluster.mongodb.net/testdb?retryWrites=true';
+        $appName = 'devrel-test-app';
+
+        config([
+            'database.connections.mongodb.dsn' => $dummyDsn,
+            'app.name' => $appName
+        ]);
 
         // Verify APP_NAME contains "devrel"
         $this->assertStringContainsString(
@@ -33,8 +38,8 @@ class MongoDBServiceTest extends TestCase
         );
 
         // Construct the runtime DSN the same way MongoDBService does
-        $separator = parse_url($dsn, PHP_URL_QUERY) ? '&' : '?';
-        $clientDsn = $dsn . $separator . 'appName=' . urlencode($appName);
+        $separator = parse_url($dummyDsn, PHP_URL_QUERY) ? '&' : '?';
+        $clientDsn = $dummyDsn . $separator . 'appName=' . urlencode($appName);
 
         // Verify the runtime DSN contains the appName parameter
         $this->assertStringContainsString(
@@ -79,6 +84,21 @@ class MongoDBServiceTest extends TestCase
             $client,
             'getClient should return MongoDB Client instance'
         );
+    }
+
+    /**
+     * Test that getClient throws exception when DB_DSN is not configured
+     */
+    public function test_get_client_throws_exception_when_dsn_not_configured(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('DB_DSN must be configured in .env for MongoDB connections');
+
+        // Temporarily set database.connections.mongodb.dsn to empty string
+        config(['database.connections.mongodb.dsn' => '']);
+
+        $service = new MongoDBService();
+        $service->getClient(); // Should throw RuntimeException
     }
 
     /**

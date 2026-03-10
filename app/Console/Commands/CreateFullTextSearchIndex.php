@@ -39,7 +39,8 @@ class CreateFullTextSearchIndex extends Command
         $collectionName = config('vector.collection');
 
         // Get full-text search configuration
-        $searchFields = ['title', 'plot', 'fullplot', 'cast', 'directors'];
+        // Current value: ['title', 'plot', 'fullplot', 'cast', 'directors']
+        $searchFields = config('fulltext.index.fields');
 
         $this->info('Creating full-text search index for movies collection...');
         $this->newLine();

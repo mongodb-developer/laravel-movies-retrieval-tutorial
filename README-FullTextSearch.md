@@ -337,28 +337,6 @@ See discussion in [`MovieSearchTextController.php:76-87`](app/Http/Controllers/M
 
 ---
 
-## Additional Resources
-
-### MongoDB Documentation
-
-- **MongoDB Atlas Search Documentation:** [Atlas Search Overview](https://www.mongodb.com/docs/atlas/atlas-search/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **MongoDB Atlas Search Tutorial:** [Run a Local Atlas Search Tutorial](https://www.mongodb.com/docs/atlas/atlas-search/tutorial/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Atlas Search in Community Edition:** [Self-Managed MongoDB with Search](https://www.mongodb.com/company/blog/product-release-announcements/supercharge-self-managed-apps-search-vector-search-capabilities?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Laravel MongoDB Integration:** [PHP Laravel MongoDB Guide](https://www.mongodb.com/resources/products/compatibilities/mongodb-laravel-integration#setting-up-a-local-laravel-development-environment?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Laravel Backend Service Tutorial:** [Build a Backend Service with Laravel and MongoDB](https://www.mongodb.com/docs/drivers/php/laravel-mongodb/current/quick-start/backend-service-tutorial/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Sample Data:** [Atlas Sample Datasets (mflix)](https://www.mongodb.com/docs/atlas/sample-data/sample-mflix/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **MongoDB Compass:** [Visual Database Tool](https://www.mongodb.com/products/tools/compass?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Atlas Cluster Setup:** [Deploy a Free Cluster](https://www.mongodb.com/docs/atlas/tutorial/deploy-free-tier-cluster/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Atlas Connection:** [Connect to Your Cluster](https://www.mongodb.com/docs/atlas/tutorial/connect-to-your-cluster/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Network Security:** [IP Access List Configuration](https://www.mongodb.com/docs/atlas/security/ip-access-list/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Atlas UI Indexes:** [View Indexes in Atlas UI](https://www.mongodb.com/docs/atlas/atlas-ui/indexes/#view-indexes?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-
-### Advanced Features
-
-- **Autocomplete Queries:** [Laravel MongoDB Autocomplete](https://www.mongodb.com/docs/drivers/php/laravel-mongodb/current/fundamentals/atlas-search/#autocomplete-queries?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Search-as-You-Type:** [Retail As-You-Type Suggestions Tutorial](https://www.mongodb.com/docs/atlas/architecture/current/solutions-library/retail-as-you-type-suggestions/?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-- **Customize Score:** [Advanced Relevance Tuning](https://www.mongodb.com/docs/atlas/atlas-search/customize-score/#std-label-fts-customize-score?utm_campaign=devrel&utm_source=third-party-content&utm_medium=cta&utm_content=laravel-26-ftsearch&utm_term=hubert.nguyen)
-
 ### Laravel & PHP Resources
 
 - **Laravel MongoDB Package:** [mongodb/laravel-mongodb on GitHub](https://github.com/mongodb/laravel-mongodb)

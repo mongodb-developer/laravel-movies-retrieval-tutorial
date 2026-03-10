@@ -28,34 +28,22 @@ class MovieSearchTextController extends Controller
 
             // Perform full-text search using Eloquent with Search builder
             // Using aggregation to access search scores
+            // Search fields: ['title', 'plot', 'fullplot', 'cast', 'directors']
             $results = Movie::query()
                 ->aggregate()
                 ->search(
                     operator: Search::text(
-                        path: ['title', 'plot', 'fullplot', 'cast', 'directors'],
+                        path: config('fulltext.index.fields'),
                         query: $query
                     ),
                     index: config('fulltext.index.name')
                 )
                 ->addFields(score: ['$meta' => 'searchScore'])
-                ->limit(config('fulltext.search.limit'))
+                ->limit(10)
                 ->get();
 
             // Format results with score and selected fields
-            $formattedResults = collect($results)->map(function ($movie) {
-                return [
-                    '_id' => ['$oid' => (string) ($movie['_id'] ?? '')],
-                    'title' => $movie['title'] ?? null,
-                    'plot' => $movie['plot'] ?? null,
-                    'fullplot' => $movie['fullplot'] ?? null,
-                    'genres' => $movie['genres'] ?? [],
-                    'year' => $movie['year'] ?? null,
-                    'cast' => $movie['cast'] ?? [],
-                    'directors' => $movie['directors'] ?? [],
-                    'poster' => $movie['poster'] ?? null,
-                    'score' => $movie['score'] ?? null
-                ];
-            });
+            $formattedResults = collect($results)->map(fn($movie) => $this->formatSearchResult($movie));
 
             return response()->json([
                 'query' => $query,
@@ -146,24 +134,11 @@ class MovieSearchTextController extends Controller
                     index: config('fulltext.index.name')
                 )
                 ->addFields(score: ['$meta' => 'searchScore'])
-                ->limit(config('fulltext.search.limit'))
+                ->limit(10)
                 ->get();
 
             // Format results with score and selected fields
-            $formattedResults = collect($results)->map(function ($movie) {
-                return [
-                    '_id' => ['$oid' => (string) ($movie['_id'] ?? '')],
-                    'title' => $movie['title'] ?? null,
-                    'plot' => $movie['plot'] ?? null,
-                    'fullplot' => $movie['fullplot'] ?? null,
-                    'genres' => $movie['genres'] ?? [],
-                    'year' => $movie['year'] ?? null,
-                    'cast' => $movie['cast'] ?? [],
-                    'directors' => $movie['directors'] ?? [],
-                    'poster' => $movie['poster'] ?? null,
-                    'score' => $movie['score'] ?? null
-                ];
-            });
+            $formattedResults = collect($results)->map(fn($movie) => $this->formatSearchResult($movie));
 
             return response()->json([
                 'query' => $query,
@@ -187,5 +162,27 @@ class MovieSearchTextController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Format a movie search result with score and selected fields.
+     *
+     * @param array $movie Raw movie document from search results
+     * @return array Formatted movie result
+     */
+    private function formatSearchResult(array $movie): array
+    {
+        return [
+            '_id' => ['$oid' => (string) ($movie['_id'] ?? '')],
+            'title' => $movie['title'] ?? null,
+            'plot' => $movie['plot'] ?? null,
+            'fullplot' => $movie['fullplot'] ?? null,
+            'genres' => $movie['genres'] ?? [],
+            'year' => $movie['year'] ?? null,
+            'cast' => $movie['cast'] ?? [],
+            'directors' => $movie['directors'] ?? [],
+            'poster' => $movie['poster'] ?? null,
+            'score' => $movie['score'] ?? null
+        ];
     }
 }

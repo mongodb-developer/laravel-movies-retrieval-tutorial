@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Services\MongoDBService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CheckVectorIndex extends Command
 {
