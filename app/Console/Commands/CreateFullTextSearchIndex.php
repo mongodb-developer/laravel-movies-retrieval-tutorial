@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Services\MongoDBService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -23,14 +22,6 @@ class CreateFullTextSearchIndex extends Command
     protected $description = 'Create MongoDB Atlas Full-Text Search index for movies collection';
 
     /**
-     * Create a new command instance.
-     */
-    public function __construct(protected MongoDBService $mongoDBService)
-    {
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      */
     public function handle()
@@ -46,8 +37,8 @@ class CreateFullTextSearchIndex extends Command
         $this->newLine();
 
         try {
-            // Get the MongoDB collection instance with dynamic appName
-            $collection = $this->mongoDBService->getCollection($collectionName);
+            // Get the MongoDB collection instance
+            $collection = DB::connection('mongodb')->getCollection($collectionName);
 
             // Check if full-text index already exists
             $existingIndex = $this->findExistingIndex($collection, $indexName);
@@ -69,7 +60,7 @@ class CreateFullTextSearchIndex extends Command
                         $elapsed += $waitInterval;
 
                         // Check if index still exists (refresh collection connection)
-                        $refreshedCollection = $this->mongoDBService->getCollection($collectionName);
+                        $refreshedCollection = DB::connection('mongodb')->getCollection($collectionName);
                         $stillExists = $this->findExistingIndex($refreshedCollection, $indexName);
                         if (!$stillExists) {
                             $this->info('Index deletion confirmed.');

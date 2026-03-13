@@ -35,6 +35,9 @@ return [
             'driver' => 'mongodb',
             'dsn' => env('DB_DSN'),
             'database' => env('DB_DATABASE', 'sample_mflix'),
+            'options' => [
+                'appName' => 'devrel-article-search-series-php-laravel',
+            ],
         ],
 
         'sqlite' => [

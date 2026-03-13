@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\MongoDBService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class CheckVectorIndex extends Command
 {
@@ -22,14 +22,6 @@ class CheckVectorIndex extends Command
     protected $description = 'Check the status of the MongoDB Atlas Vector Search index';
 
     /**
-     * Create a new command instance.
-     */
-    public function __construct(protected MongoDBService $mongoDBService)
-    {
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      */
     public function handle()
@@ -41,8 +33,8 @@ class CheckVectorIndex extends Command
         $this->newLine();
 
         try {
-            // Get the MongoDB collection instance with dynamic appName
-            $collection = $this->mongoDBService->getCollection($collectionName);
+            // Get the MongoDB collection instance
+            $collection = DB::connection('mongodb')->getCollection($collectionName);
 
             // List all search indexes
             $indexes = iterator_to_array($collection->listSearchIndexes());
