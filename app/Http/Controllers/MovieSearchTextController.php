@@ -173,7 +173,7 @@ class MovieSearchTextController extends Controller
     private function formatSearchResult(array $movie): array
     {
         return [
-            '_id' => ['$oid' => (string) ($movie['_id'] ?? '')],
+            'id' => (string) $movie['_id'],
             'title' => $movie['title'] ?? null,
             'plot' => $movie['plot'] ?? null,
             'fullplot' => $movie['fullplot'] ?? null,
