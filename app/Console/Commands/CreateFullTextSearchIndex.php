@@ -60,8 +60,8 @@ class CreateFullTextSearchIndex extends Command
                         $elapsed += $waitInterval;
 
                         // Check if index still exists (refresh collection connection)
-                        $refreshedCollection = DB::connection('mongodb')->getCollection($collectionName);
-                        $stillExists = $this->findExistingIndex($refreshedCollection, $indexName);
+                        // $refreshedCollection = DB::connection('mongodb')->getCollection($collectionName);
+                        $stillExists = $this->findExistingIndex($collection , $indexName);
                         if (!$stillExists) {
                             $this->info('Index deletion confirmed.');
                             break;
