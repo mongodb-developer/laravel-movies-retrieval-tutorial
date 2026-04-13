@@ -9,6 +9,7 @@ use App\Http\Controllers\EmbeddingModelInfoController;
 use App\Http\Controllers\EmbeddingModelVectorizeController;
 use App\Http\Controllers\GetMovieByTitleController;
 use App\Http\Controllers\MovieSearchVectorController;
+use App\Http\Controllers\MovieSearchTextController;
 
 Route::get('/hello', function () {
     return response()->json([
@@ -25,3 +26,7 @@ Route::get('/embedding-model-vectorize/{input}', EmbeddingModelVectorizeControll
 Route::get('/get-movie-by-title/{title}', GetMovieByTitleController::class);
 
 Route::post('/movie-search-vector', MovieSearchVectorController::class);
+
+Route::post('/search-text-naive', [MovieSearchTextController::class, 'naive']);
+
+Route::post('/search-text', [MovieSearchTextController::class, 'weighted']);

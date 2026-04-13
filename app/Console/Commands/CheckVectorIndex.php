@@ -33,8 +33,8 @@ class CheckVectorIndex extends Command
         $this->newLine();
 
         try {
-            // Get the MongoDB collection instance with dynamic appName
-            $collection = $this->getMongoCollection($collectionName);
+            // Get the MongoDB collection instance
+            $collection = DB::connection('mongodb')->getCollection($collectionName);
 
             // List all search indexes
             $indexes = iterator_to_array($collection->listSearchIndexes());
@@ -141,24 +141,5 @@ class CheckVectorIndex extends Command
             $this->line('  3. The database and collection exist');
             return 1;
         }
-    }
-
-    /**
-     * Get MongoDB collection with dynamic appName parameter
-     */
-    private function getMongoCollection(string $collectionName)
-    {
-        $dsn = config('database.connections.mongodb.dsn');
-        $database = config('database.connections.mongodb.database');
-        $appName = 'devrel-laravel-v-search-2025';
-
-        // Dynamically append appName to connection string
-        $separator = parse_url($dsn, PHP_URL_QUERY) ? '&' : '?';
-        $clientDsn = $dsn . $separator . 'appName=' . urlencode($appName);
-
-        // Create MongoDB client with appName
-        $client = new \MongoDB\Client($clientDsn);
-
-        return $client->selectCollection($database, $collectionName);
     }
 }

@@ -173,4 +173,89 @@ class ApiEndpointsTest extends TestCase
             ]);
         }
     }
+
+    /**
+     * Test naive full-text search endpoint requires query
+     */
+    public function test_search_text_naive_endpoint_requires_query(): void
+    {
+        $response = $this->postJson('/api/search-text-naive', []);
+
+        $response->assertStatus(400);
+        $response->assertJson([
+            'error' => 'Query parameter is required'
+        ]);
+    }
+
+    /**
+     * Test naive full-text search endpoint with valid query
+     */
+    public function test_search_text_naive_endpoint_with_query(): void
+    {
+        $response = $this->postJson('/api/search-text-naive', [
+            'query' => 'space'
+        ]);
+
+        // Should return 200 if index exists, or 500 if index doesn't exist
+        $this->assertContains($response->status(), [200, 500]);
+
+        if ($response->status() === 200) {
+            $response->assertJsonStructure([
+                'query',
+                'results',
+                'count',
+                'search_type',
+                'index'
+            ]);
+            $this->assertEquals('space', $response->json('query'));
+            $this->assertEquals('naive', $response->json('search_type'));
+        }
+    }
+
+    /**
+     * Test weighted full-text search endpoint requires query
+     */
+    public function test_search_text_weighted_endpoint_requires_query(): void
+    {
+        $response = $this->postJson('/api/search-text', []);
+
+        $response->assertStatus(400);
+        $response->assertJson([
+            'error' => 'Query parameter is required'
+        ]);
+    }
+
+    /**
+     * Test weighted full-text search endpoint with valid query
+     */
+    public function test_search_text_weighted_endpoint_with_query(): void
+    {
+        $response = $this->postJson('/api/search-text', [
+            'query' => 'space'
+        ]);
+
+        // Should return 200 if index exists, or 500 if index doesn't exist
+        $this->assertContains($response->status(), [200, 500]);
+
+        if ($response->status() === 200) {
+            $response->assertJsonStructure([
+                'query',
+                'results',
+                'count',
+                'search_type',
+                'weights',
+                'index'
+            ]);
+            $this->assertEquals('space', $response->json('query'));
+            $this->assertEquals('weighted', $response->json('search_type'));
+            $this->assertEquals([
+                'title_phrase' => 10,
+                'title_text' => 7,
+                'plot' => 3,
+                'cast' => 5,
+                'directors' => 2,
+                'fullplot' => 1
+            ], $response->json('weights'));
+        }
+    }
 }

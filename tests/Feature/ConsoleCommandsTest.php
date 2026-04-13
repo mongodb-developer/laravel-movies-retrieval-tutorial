@@ -53,4 +53,24 @@ class ConsoleCommandsTest extends TestCase
         $this->artisan('vector:create-index')
             ->assertExitCode(0);
     }
+
+    /**
+     * Test that fulltext:create-index command exists
+     */
+    public function test_fulltext_create_index_command_exists(): void
+    {
+        $this->artisan('fulltext:create-index --help')
+            ->assertExitCode(0);
+    }
+
+    /**
+     * Test fulltext:create-index command runs successfully
+     */
+    public function test_fulltext_create_index_runs_successfully(): void
+    {
+        // Command should run successfully (either creates index or shows existing)
+        // Exit code 0 = success, Exit code 1 = MongoDB connection error or other failure
+        $this->artisan('fulltext:create-index')
+            ->assertExitCode(0);
+    }
 }
